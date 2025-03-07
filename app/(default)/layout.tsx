@@ -16,7 +16,7 @@ export default function Layout({
             <footer className="bg-secondary py-4 border-t border-border">
                 <div className="container mx-auto px-4 text-center">
                     <p className="text-sm text-secondary-foreground">
-                        © 2024 Researcher Interface. Created by{' '}
+                        © 2024 Recruitment List App. Created by{' '}
                         <a
                             href="https://coneno.com"
                             target="_blank"
