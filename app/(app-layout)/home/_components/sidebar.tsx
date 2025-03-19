@@ -20,7 +20,6 @@ const Sidebar: React.FC = async () => {
                     variant="outline"
                     size="icon"
                     aria-label="Home"
-                    className='hover:bg-secondary'
                     asChild
                 >
                     <Link href="/home">
