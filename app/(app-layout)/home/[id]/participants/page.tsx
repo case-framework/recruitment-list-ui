@@ -8,6 +8,11 @@ interface PageProps {
     params: {
         id: string;
     };
+    searchParams: {
+        sortBy: string;
+        sortDir: string;
+        // filter attributes
+    }
 }
 
 export default async function Page(props: PageProps) {
@@ -17,7 +22,7 @@ export default async function Page(props: PageProps) {
         participantsPage,
     ] = await Promise.all([
         getRecruitmentList(props.params.id),
-        getParticipants(props.params.id, 1),
+        getParticipants(props.params.id, 1, props.searchParams.sortBy, props.searchParams.sortDir),
     ]);
 
     if (recruitmentList.error !== undefined) {
@@ -50,6 +55,7 @@ export default async function Page(props: PageProps) {
                 recruitmentListId={props.params.id}
                 participantInfos={recruitmentList.participantData.participantInfos}
                 participantsPage={currentPageInfos}
+                statusValues={recruitmentList.customization?.recruitmentStatusValues || []}
             />
         </div>
     );

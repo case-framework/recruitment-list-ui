@@ -23,6 +23,7 @@ interface ParticipantsViewProps {
             pageSize: number
         }
     }
+    statusValues: string[]
 }
 
 const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
@@ -82,7 +83,9 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
     return (
         <>
             <div className='flex gap-4 justify-end'>
-                <FilterEditor />
+                <FilterEditor
+                    statusValues={props.statusValues}
+                />
                 <SortEditor />
             </div>
             <Card>

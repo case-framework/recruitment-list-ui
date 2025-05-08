@@ -1,28 +1,192 @@
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { FilterIcon } from 'lucide-react';
-import React from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
 
 interface FilterEditorProps {
+    statusValues: string[]
+}
+
+interface Filters {
+    participantId: string | null
+    recruitmentStatus: string | null
+    includedSince: string | null
+    includedUntil: string | null
 }
 
 const FilterEditor: React.FC<FilterEditorProps> = (props) => {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [open, setOpen] = useState(false);
+
+    const [currentFilters, setCurrentFilters] = useState<Filters>({
+        participantId: null,
+        recruitmentStatus: null,
+        includedSince: null,
+        includedUntil: null,
+    })
+
+
+    useEffect(() => {
+        setCurrentFilters({
+            participantId: searchParams.get('participantId') || null,
+            recruitmentStatus: searchParams.get('recruitmentStatus') || null,
+            includedSince: searchParams.get('includedSince') || null,
+            includedUntil: searchParams.get('includedUntil') || null,
+        })
+    }, [open, searchParams])
+
+    const hasChanges = () => {
+        return currentFilters.participantId !== searchParams.get('participantId') ||
+            currentFilters.recruitmentStatus !== searchParams.get('recruitmentStatus') ||
+            currentFilters.includedSince !== searchParams.get('includedSince') ||
+            currentFilters.includedUntil !== searchParams.get('includedUntil')
+    }
+
+    const hasFilters = () => {
+        return searchParams.get('participantId') !== null ||
+            searchParams.get('recruitmentStatus') !== null ||
+            searchParams.get('includedSince') !== null ||
+            searchParams.get('includedUntil') !== null
+    }
+
+    const createQueryString = useCallback(
+        (filters: Filters) => {
+            const params = new URLSearchParams(searchParams.toString())
+            if (filters.participantId !== null) {
+                params.set('participantId', filters.participantId)
+            } else {
+                params.delete('participantId')
+            }
+            if (filters.recruitmentStatus !== null) {
+                params.set('recruitmentStatus', filters.recruitmentStatus)
+            } else {
+                params.delete('recruitmentStatus')
+            }
+            if (filters.includedSince !== null) {
+                params.set('includedSince', filters.includedSince)
+            } else {
+                params.delete('includedSince')
+            }
+            return params.toString()
+        },
+        [searchParams]
+    )
+
     return (
-        <Popover>
+        <Popover
+            open={open}
+            onOpenChange={setOpen}
+        >
             <PopoverTrigger asChild>
                 <Button
                     className='flex items-center gap-2'
-                    variant='outline'
+                    variant={hasFilters() ? 'default' : 'outline'}
                     size={'sm'}
                 >
                     <span>
-                        <FilterIcon className='size-3 text-muted-foreground' />
+                        <FilterIcon className='size-3' />
                     </span>
-                    Filter
+                    Filters
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align='end'>
-                <p>FilterEditor</p>
+            <PopoverContent align='end'
+                className='w-fit'
+            >
+                <div className='w-96 space-y-4'>
+                    <h3 className='text-lg font-bold'>Filter by</h3>
+
+                    <Label
+                        className='space-y-1.5 block'
+                    >
+                        <span>
+                            Participant ID
+                        </span>
+                        <Input
+                            placeholder='ID of participant to find'
+                            className='w-full text-xs font-mono'
+                            value={currentFilters.participantId || ''}
+                            onChange={e => {
+                                const value = e.target.value || null;
+                                setCurrentFilters({ ...currentFilters, participantId: value })
+                            }}
+                        />
+
+                    </Label>
+
+                    {props.statusValues.length > 0 && <Label
+                        className='space-y-1.5 block'
+                    >
+                        <span>
+                            Recruitment status
+                        </span>
+                        <Select
+                            value={currentFilters.recruitmentStatus || ''}
+                            onValueChange={value => {
+                                if (value === '___') {
+                                    setCurrentFilters({ ...currentFilters, recruitmentStatus: null })
+                                    return;
+                                }
+                                setCurrentFilters({ ...currentFilters, recruitmentStatus: value })
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select recruitment status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="___"
+                                    className='text-muted-foreground'
+                                >
+                                    Clear status filter
+                                </SelectItem>
+                                <Separator />
+                                {props.statusValues.map(status => (
+                                    <SelectItem
+                                        key={status}
+                                        value={status}>
+                                        {status}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </Label>}
+
+                    <div className='flex items-center justify-end gap-2'>
+                        <Button
+                            variant={'outline'}
+                            onClick={() => {
+                                const newFilters = {
+                                    participantId: null,
+                                    recruitmentStatus: null,
+                                    includedSince: null,
+                                    includedUntil: null,
+                                }
+                                router.push(pathname + '?' + createQueryString(newFilters))
+                                setOpen(false)
+                            }}
+                            disabled={!hasFilters()}
+                        >
+                            Clear filters
+                        </Button>
+
+                        <Button
+                            disabled={!hasChanges()}
+                            onClick={() => {
+                                router.push(pathname + '?' + createQueryString(currentFilters))
+                                setOpen(false)
+                            }}
+                        >
+                            Apply
+                        </Button>
+                    </div>
+
+                </div>
             </PopoverContent>
         </Popover>
     );
