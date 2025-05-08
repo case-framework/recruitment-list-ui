@@ -7,6 +7,9 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import FilterEditor from './filter-editor';
+import { Card } from '@/components/ui/card';
+import SortEditor from './sort-editor';
 
 interface ParticipantsViewProps {
     recruitmentListId: string
@@ -28,6 +31,11 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
     const [loading, setLoading] = useState(false)
     const loader = useRef(null)
     const router = useRouter()
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         if (props.participantsPage.pagination.currentPage !== page && props.participantsPage.pagination.totalPages >= page) {
@@ -69,59 +77,69 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
         return () => observer.disconnect()
     }, [loading])
 
+
     const participantInfos = (props.participantInfos || []).filter(participantInfo => participantInfo.showInPreview)
     return (
-        <div className="w-full overflow-auto z-10">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Participant ID</TableHead>
-                        <TableHead>Imported at</TableHead>
-                        <TableHead>Status</TableHead>
-                        {participantInfos.map(participantInfo => (
-                            <TableHead key={participantInfo.id}>{participantInfo.label}</TableHead>
-                        ))}
+        <>
+            <div className='flex gap-4 justify-end'>
+                <FilterEditor />
+                <SortEditor />
+            </div>
+            <Card>
+                <div className="w-full overflow-auto z-10">
 
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {participants.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={participantInfos.length + 2} className="text-center text-muted-foreground">
-                                No participants yet.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                    {participants.map(participant => (
-                        <TableRow key={participant.id}
-                            className='cursor-pointer'
-                            onClick={() => {
-                                router.push(`/home/${props.recruitmentListId}/participants/${participant.id}`);
-                            }}
-                        >
-                            <TableCell>
-                                <span className='font-mono text-xs'>{participant.participantId}</span>
-                                {participant.deletedAt && <span className='text-xs text-destructive'> (deleted)</span>}
-                            </TableCell>
-                            <TableCell>{new Date(participant.includedAt).toLocaleString()}</TableCell>
-                            <TableCell>{participant.recruitmentStatus}</TableCell>
-                            {participantInfos.map(participantInfo => {
-                                let cellValue = '';
-                                if (participant.infos !== undefined && participant.infos[participantInfo.label] !== undefined) {
-                                    cellValue = participant.infos[participantInfo.label];
-                                }
-                                return <TableCell key={participantInfo.id}>{cellValue}</TableCell>
-                            })}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-            {loading && <div className='flex items-center justify-center py-4 text-primary'>
-                <Loader2 className='animate-spin size-4 mr-2' />
-                <span>Loading more participants...</span>
-            </div>}
-            <div ref={loader} />
-        </div >
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Participant ID</TableHead>
+                                <TableHead>Imported at</TableHead>
+                                <TableHead>Status</TableHead>
+                                {participantInfos.map(participantInfo => (
+                                    <TableHead key={participantInfo.id}>{participantInfo.label}</TableHead>
+                                ))}
+
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {participants.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={participantInfos.length + 2} className="text-center text-muted-foreground">
+                                        No participants yet.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {participants.map(participant => (
+                                <TableRow key={participant.id}
+                                    className='cursor-pointer'
+                                    onClick={() => {
+                                        router.push(`/home/${props.recruitmentListId}/participants/${participant.id}`);
+                                    }}
+                                >
+                                    <TableCell>
+                                        <span className='font-mono text-xs'>{participant.participantId}</span>
+                                        {participant.deletedAt && <span className='text-xs text-destructive'> (deleted)</span>}
+                                    </TableCell>
+                                    <TableCell>{mounted && new Date(participant.includedAt).toLocaleString()}</TableCell>
+                                    <TableCell>{participant.recruitmentStatus}</TableCell>
+                                    {participantInfos.map(participantInfo => {
+                                        let cellValue = '';
+                                        if (participant.infos !== undefined && participant.infos[participantInfo.label] !== undefined) {
+                                            cellValue = participant.infos[participantInfo.label];
+                                        }
+                                        return <TableCell key={participantInfo.id}>{cellValue}</TableCell>
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    {loading && <div className='flex items-center justify-center py-4 text-primary'>
+                        <Loader2 className='animate-spin size-4 mr-2' />
+                        <span>Loading more participants...</span>
+                    </div>}
+                    <div ref={loader} />
+                </div >
+            </Card>
+        </>
     );
 };
 

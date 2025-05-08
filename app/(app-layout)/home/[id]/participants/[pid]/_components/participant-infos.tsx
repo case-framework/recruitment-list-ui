@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { updateParticipantStatus } from '@/lib/backend/participants';
 import { Participant } from '@/lib/backend/types';
 import { Loader2 } from 'lucide-react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface ParticipantInfosProps {
@@ -17,6 +17,11 @@ interface ParticipantInfosProps {
 
 const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
     const [isPending, startTransition] = React.useTransition();
+    const [mounted, setMounted] = React.useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const onUpdateStatus = async (status: string) => {
         startTransition(async () => {
@@ -48,7 +53,7 @@ const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
                 <div className='my-4'>
                     <p className='font-medium text-sm mb-1.5'>Imported at</p>
                     <div className='font-mono text-xs px-2 py-2 bg-background text-primary rounded-md overflow-x-auto border border-border'>
-                        {new Date(props.participant.includedAt).toLocaleString()}
+                        {mounted && new Date(props.participant.includedAt).toLocaleString()}
                     </div>
                 </div>
 

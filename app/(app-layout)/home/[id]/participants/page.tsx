@@ -2,7 +2,7 @@ import { getRecruitmentList } from "@/lib/backend/recruitmentLists";
 import ParticipantsView from "./_components/participants-view";
 import { getParticipants } from "@/lib/backend/participants";
 import { redirect } from "next/navigation";
-import { Card } from "@/components/ui/card";
+
 
 interface PageProps {
     params: {
@@ -46,14 +46,11 @@ export default async function Page(props: PageProps) {
             <h2 className="text-lg font-bold">
                 Participants
             </h2>
-            <Card>
-                <ParticipantsView
-                    recruitmentListId={props.params.id}
-                    participantInfos={recruitmentList.participantData.participantInfos}
-                    participantsPage={currentPageInfos}
-                />
-            </Card>
-
+            <ParticipantsView
+                recruitmentListId={props.params.id}
+                participantInfos={recruitmentList.participantData.participantInfos}
+                participantsPage={currentPageInfos}
+            />
         </div>
     );
 }
