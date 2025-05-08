@@ -1,12 +1,25 @@
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ArrowUpDownIcon, SortAscIcon, SortDescIcon } from 'lucide-react';
-import React from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback } from 'react';
 
-interface SortEditorProps {
-}
 
-const SortEditor: React.FC<SortEditorProps> = (props) => {
+const SortEditor: React.FC = () => {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const createQueryString = useCallback(
+        (name: string, value: string) => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set(name, value)
+
+            return params.toString()
+        },
+        [searchParams]
+    )
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -25,7 +38,10 @@ const SortEditor: React.FC<SortEditorProps> = (props) => {
                 <DropdownMenuLabel>
                     Sort by
                 </DropdownMenuLabel>
-                <DropdownMenuRadioGroup value='includedAt'>
+                <DropdownMenuRadioGroup
+                    value={searchParams.get('sortBy') || 'includedAt'}
+                    onValueChange={value => router.push(pathname + '?' + createQueryString('sortBy', value))}
+                >
                     <DropdownMenuRadioItem value='includedAt'>
                         Imported at
                     </DropdownMenuRadioItem>
@@ -41,7 +57,10 @@ const SortEditor: React.FC<SortEditorProps> = (props) => {
                 <DropdownMenuLabel>
                     Sort direction
                 </DropdownMenuLabel>
-                <DropdownMenuRadioGroup value='asc'>
+                <DropdownMenuRadioGroup
+                    value={searchParams.get('sortDir') || 'asc'}
+                    onValueChange={value => router.push(pathname + '?' + createQueryString('sortDir', value))}
+                >
                     <DropdownMenuRadioItem value='asc'>
                         <SortAscIcon className='mr-2 text-muted-foreground size-3' />
                         Ascending
