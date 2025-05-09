@@ -6,6 +6,7 @@ import Notes from "./_components/notes";
 import { ParticipantInfo, ParticipantNote, Permission } from "@/lib/backend/types";
 import { auth } from "@/auth";
 import { getCurrentUserPermissions } from "@/lib/backend/permissions";
+import BackButton from "@/components/back-button";
 
 interface PageProps {
     params: {
@@ -37,9 +38,12 @@ export default async function Page(props: PageProps) {
 
     return (
         <div className="py-4 px-8 space-y-4">
-            <h2 className="text-lg font-bold">
-                Participant overview
-            </h2>
+            <div className="flex gap-2 items-center">
+                <BackButton />
+                <h2 className="text-lg font-bold">
+                    Participant overview
+                </h2>
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Card className="overflow-hidden">
