@@ -2,11 +2,13 @@
 
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { updateParticipantStatus } from '@/lib/backend/participants';
 import { Participant } from '@/lib/backend/types';
-import { Loader2 } from 'lucide-react';
+import { CopyIcon, Loader2 } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { toast } from 'sonner';
+import { useCopyToClipboard } from 'usehooks-ts';
 
 interface ParticipantInfosProps {
     participant: Participant
@@ -18,6 +20,7 @@ interface ParticipantInfosProps {
 const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
     const [isPending, startTransition] = React.useTransition();
     const [mounted, setMounted] = React.useState(false);
+    const [, copyToClipboard] = useCopyToClipboard();
 
     useEffect(() => {
         setMounted(true);
@@ -45,10 +48,25 @@ const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
             <div className='bg-neutral-50 -m-4 p-4'>
                 <div>
                     <p className='font-medium text-sm mb-1.5'>Participant ID</p>
-                    <div className='font-mono text-xs px-2 py-2 bg-background text-primary rounded-md overflow-x-auto border border-border'>
-                        {props.participant.participantId}
-                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className='w-full cursor-pointer flex justify-between items-center gap-2 font-mono text-xs px-2 py-2 bg-background text-primary rounded-md overflow-x-auto border border-border hover:bg-neutral-50'
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(props.participant.participantId);
+                                    toast.success('Participant ID copied to clipboard');
+                                }}
+                            >
+                                {props.participant.participantId}
+                                <CopyIcon className='size-3 ' />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Copy participant ID</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
+
 
                 <div className='my-4'>
                     <p className='font-medium text-sm mb-1.5'>Imported at</p>
