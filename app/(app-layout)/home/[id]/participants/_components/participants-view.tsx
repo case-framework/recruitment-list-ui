@@ -3,13 +3,16 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getParticipants } from '@/lib/backend/participants';
 import { Participant, ParticipantInfo } from '@/lib/backend/types';
-import { Loader2 } from 'lucide-react';
+import { CopyIcon, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import FilterEditor from './filter-editor';
 import { Card } from '@/components/ui/card';
 import SortEditor from './sort-editor';
+import { useCopyToClipboard } from 'usehooks-ts';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ParticipantsViewProps {
     recruitmentListId: string
@@ -38,6 +41,7 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
     const [mounted, setMounted] = useState(false)
     const searchParams = useSearchParams();
     const [currentQuery, setCurrentQuery] = useState<string>(searchParams.toString());
+    const [, copyToClipboard] = useCopyToClipboard();
 
     useEffect(() => {
         setMounted(true)
@@ -144,6 +148,25 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                                     <TableCell>
                                         <span className='font-mono text-xs'>{participant.participantId}</span>
                                         {participant.deletedAt && <span className='text-xs text-destructive'> (deleted)</span>}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        copyToClipboard(participant.participantId);
+                                                        toast.success('Participant ID copied to clipboard');
+                                                    }}
+                                                    variant={'ghost'}
+                                                    size='icon'
+                                                    className='-my-4 ms-2'
+                                                >
+                                                    <CopyIcon className='size-3 ' />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Copy participant ID</p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     </TableCell>
                                     <TableCell>{mounted && new Date(participant.includedAt).toLocaleString()}</TableCell>
                                     <TableCell>{participant.recruitmentStatus}</TableCell>
