@@ -1,10 +1,12 @@
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { FilterIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { CalendarIcon, FilterIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -17,6 +19,11 @@ interface Filters {
     recruitmentStatus: string | null
     includedSince: string | null
     includedUntil: string | null
+}
+
+// Format a date for display
+const formatDateForDisplay = (date: Date) => {
+    return date ? format(date, 'yyyy-MM-dd') : ""
 }
 
 const FilterEditor: React.FC<FilterEditorProps> = (props) => {
@@ -73,6 +80,11 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                 params.set('includedSince', filters.includedSince)
             } else {
                 params.delete('includedSince')
+            }
+            if (filters.includedUntil !== null) {
+                params.set('includedUntil', filters.includedUntil)
+            } else {
+                params.delete('includedUntil')
             }
             return params.toString()
         },
@@ -156,6 +168,70 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                             </SelectContent>
                         </Select>
                     </Label>}
+
+                    <div className='flex gap-4 justify-between'>
+                        <div className="space-y-1 w-44">
+                            <Label htmlFor="startDate">Imported later than</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="startDate"
+                                        variant="outline"
+                                        className="w-full justify-start text-left font-normal"
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {currentFilters.includedSince ? formatDateForDisplay(new Date(currentFilters.includedSince)) : "Pick a start date"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={currentFilters.includedSince ? new Date(currentFilters.includedSince) : undefined}
+                                        onSelect={(date) => {
+                                            if (!date) {
+                                                setCurrentFilters({ ...currentFilters, includedSince: null })
+                                                return;
+                                            }
+                                            setCurrentFilters({ ...currentFilters, includedSince: date.toISOString() })
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <div className="space-y-1 w-44">
+                            <Label htmlFor="endDate">Imported earlier than</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="endDate"
+                                        variant="outline"
+                                        className="w-full justify-start text-left font-normal"
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {currentFilters.includedUntil ? formatDateForDisplay(new Date(currentFilters.includedUntil)) : "Pick a end date"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={currentFilters.includedUntil ? new Date(currentFilters.includedUntil) : undefined}
+                                        onSelect={(date) => {
+                                            if (!date) {
+                                                setCurrentFilters({ ...currentFilters, includedUntil: null })
+                                                return;
+                                            }
+                                            setCurrentFilters({ ...currentFilters, includedUntil: date.toISOString() })
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+
+                    <Separator />
 
                     <div className='flex items-center justify-end gap-2'>
                         <Button
