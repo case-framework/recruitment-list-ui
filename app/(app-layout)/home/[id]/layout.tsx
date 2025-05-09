@@ -50,7 +50,7 @@ export default async function Layout({
 
     return (
         <div className="h-full">
-            <div className="h-[59.5px] fixed top-0 left-[57px] z-20 right-0 border-b border-border bg-background px-8 flex items-center justify-between ">
+            <div className="h-[57px] fixed top-0 left-[57px] z-20 right-0 border-b border-border bg-background px-8 flex items-center justify-between ">
                 <h1 className="text-xl font-bold font-mono text-primary">{rlResp?.name}</h1>
                 {showSettings && <Button
                     size={'icon'}
