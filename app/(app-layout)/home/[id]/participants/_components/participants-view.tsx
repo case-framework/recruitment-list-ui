@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getParticipants } from '@/lib/backend/participants';
 import { Participant, ParticipantInfo } from '@/lib/backend/types';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import FilterEditor from './filter-editor';
@@ -16,33 +16,55 @@ interface ParticipantsViewProps {
     participantInfos: ParticipantInfo[]
     participantsPage: {
         participants: Participant[]
-        pagination: {
-            currentPage: number
-            totalPages: number
-            totalCount: number
-            pageSize: number
-        }
+        pagination: PaginationInfo
     }
     statusValues: string[]
 }
 
+interface PaginationInfo {
+    currentPage: number
+    totalPages: number
+    totalCount: number
+    pageSize: number
+}
+
 const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
     const [participants, setParticipants] = useState<Participant[]>(props.participantsPage.participants || [])
+    const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | undefined>(props.participantsPage.pagination);
     const [page, setPage] = useState(props.participantsPage.pagination.currentPage)
     const [loading, setLoading] = useState(false)
     const loader = useRef(null)
     const router = useRouter()
     const [mounted, setMounted] = useState(false)
+    const searchParams = useSearchParams();
+    const [currentQuery, setCurrentQuery] = useState<string>(searchParams.toString());
 
     useEffect(() => {
         setMounted(true)
     }, [])
 
     useEffect(() => {
-        if (props.participantsPage.pagination.currentPage !== page && props.participantsPage.pagination.totalPages >= page) {
+        if (currentQuery !== searchParams.toString()) {
+            setPage(1);
+            setCurrentQuery(searchParams.toString());
+            setParticipants([]);
+            setPaginationInfo(undefined);
+            return;
+        }
+        if (paginationInfo === undefined || (paginationInfo.currentPage !== page && props.participantsPage.pagination.totalPages >= page)) {
             const fetchParticipants = async () => {
+                const hasFilters = searchParams.get('participantId') ||
+                    searchParams.get('recruitmentStatus') ||
+                    searchParams.get('includedSince') ||
+                    searchParams.get('includedUntil');
+                const pFilters = hasFilters ? {
+                    participantId: searchParams.get('participantId'),
+                    recruitmentStatus: searchParams.get('recruitmentStatus'),
+                    includedSince: searchParams.get('includedSince'),
+                    includedUntil: searchParams.get('includedUntil'),
+                } : undefined;
                 setLoading(true)
-                const resp = await getParticipants(props.recruitmentListId, page);
+                const resp = await getParticipants(props.recruitmentListId, page, pFilters, searchParams.get('sortBy') || undefined, searchParams.get('sortDir') || undefined);
                 if (resp.error !== undefined) {
                     console.error(resp.error);
                     toast.error('Could not fetch participants', {
@@ -52,14 +74,15 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                     return;
                 }
                 const newParticipants = resp.participants || [];
-                setParticipants([...participants, ...newParticipants]);
+                setParticipants(prev => [...prev, ...newParticipants]);
+                setPaginationInfo(resp.pagination);
                 setLoading(false)
             }
             fetchParticipants()
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page])
+    }, [page, currentQuery, searchParams])
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -112,7 +135,7 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                                 </TableRow>
                             )}
                             {participants.map(participant => (
-                                <TableRow key={participant.id}
+                                <TableRow key={participant.participantId}
                                     className='cursor-pointer'
                                     onClick={() => {
                                         router.push(`/home/${props.recruitmentListId}/participants/${participant.id}`);

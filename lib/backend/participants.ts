@@ -29,14 +29,46 @@ export const importParticipant = async (recruitmentListId: string, participantId
     return response.body;
 }
 
-export const getParticipants = async (recruitmentListId: string, page: number) => {
+export interface ParticipantFilters {
+    participantId: string | null
+    recruitmentStatus: string | null
+    includedSince: string | null
+    includedUntil: string | null
+}
+
+export const getParticipants = async (recruitmentListId: string, page: number, participantFilters?: ParticipantFilters, sortBy?: string, sortDir?: string) => {
     const session = await auth();
 
     if (!session || !session.CASEaccessToken) {
         return { status: 401, error: 'Unauthorized', researchers: [] };
     }
 
-    const url = `/v1/recruitment-lists/${recruitmentListId}/participants?page=${page}`;
+    const query = new URLSearchParams();
+    if (participantFilters !== undefined) {
+        if (participantFilters.participantId !== null) {
+            query.set('participantId', participantFilters.participantId);
+        }
+        if (participantFilters.recruitmentStatus !== null) {
+            query.set('recruitmentStatus', participantFilters.recruitmentStatus);
+        }
+        if (participantFilters.includedSince !== null) {
+            query.set('includedSince', participantFilters.includedSince);
+        }
+        if (participantFilters.includedUntil !== null) {
+            query.set('includedUntil', participantFilters.includedUntil);
+        }
+    }
+
+    if (sortBy !== undefined) {
+        query.set('sortBy', sortBy);
+    }
+    if (sortDir !== undefined) {
+        query.set('sortDir', sortDir);
+    }
+    query.set('page', page.toString());
+    // query.set('limit', "2");
+
+    const url = `/v1/recruitment-lists/${recruitmentListId}/participants?${query.toString()}`;
     const response = await fetchRecruitmentListAPI(
         url,
         session.CASEaccessToken,

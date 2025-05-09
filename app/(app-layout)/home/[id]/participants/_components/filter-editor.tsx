@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { ParticipantFilters } from '@/lib/backend/participants';
 import { format } from 'date-fns';
 import { CalendarIcon, FilterIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -12,13 +13,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 interface FilterEditorProps {
     statusValues: string[]
-}
-
-interface Filters {
-    participantId: string | null
-    recruitmentStatus: string | null
-    includedSince: string | null
-    includedUntil: string | null
 }
 
 // Format a date for display
@@ -32,7 +26,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
     const searchParams = useSearchParams();
     const [open, setOpen] = useState(false);
 
-    const [currentFilters, setCurrentFilters] = useState<Filters>({
+    const [currentFilters, setCurrentFilters] = useState<ParticipantFilters>({
         participantId: null,
         recruitmentStatus: null,
         includedSince: null,
@@ -64,7 +58,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
     }
 
     const createQueryString = useCallback(
-        (filters: Filters) => {
+        (filters: ParticipantFilters) => {
             const params = new URLSearchParams(searchParams.toString())
             if (filters.participantId !== null) {
                 params.set('participantId', filters.participantId)
@@ -187,6 +181,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                     <Calendar
                                         mode="single"
                                         selected={currentFilters.includedSince ? new Date(currentFilters.includedSince) : undefined}
+                                        defaultMonth={currentFilters.includedSince ? new Date(currentFilters.includedSince) : undefined}
                                         onSelect={(date) => {
                                             if (!date) {
                                                 setCurrentFilters({ ...currentFilters, includedSince: null })
@@ -216,6 +211,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                 <PopoverContent className="w-auto p-0">
                                     <Calendar
                                         mode="single"
+                                        defaultMonth={currentFilters.includedUntil ? new Date(currentFilters.includedUntil) : undefined}
                                         selected={currentFilters.includedUntil ? new Date(currentFilters.includedUntil) : undefined}
                                         onSelect={(date) => {
                                             if (!date) {
@@ -224,6 +220,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                             }
                                             setCurrentFilters({ ...currentFilters, includedUntil: date.toISOString() })
                                         }}
+
                                         initialFocus
                                     />
                                 </PopoverContent>

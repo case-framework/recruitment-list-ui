@@ -9,20 +9,37 @@ interface PageProps {
         id: string;
     };
     searchParams: {
-        sortBy: string;
-        sortDir: string;
+        // sort attributes
+        sortBy?: string;
+        sortDir?: string;
         // filter attributes
+        participantId?: string;
+        recruitmentStatus?: string;
+        includedSince?: string;
+        includedUntil?: string;
     }
 }
 
 export default async function Page(props: PageProps) {
+    const hasFilters = props.searchParams.participantId ||
+        props.searchParams.recruitmentStatus ||
+        props.searchParams.includedSince ||
+        props.searchParams.includedUntil;
+
+    const pFilters = hasFilters ? {
+        participantId: props.searchParams.participantId || null,
+        recruitmentStatus: props.searchParams.recruitmentStatus || null,
+        includedSince: props.searchParams.includedSince || null,
+        includedUntil: props.searchParams.includedUntil || null,
+    } : undefined;
+
 
     const [
         recruitmentList,
         participantsPage,
     ] = await Promise.all([
         getRecruitmentList(props.params.id),
-        getParticipants(props.params.id, 1, props.searchParams.sortBy, props.searchParams.sortDir),
+        getParticipants(props.params.id, 1, pFilters, props.searchParams.sortBy || undefined, props.searchParams.sortDir || undefined),
     ]);
 
     if (recruitmentList.error !== undefined) {
