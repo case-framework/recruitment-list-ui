@@ -52,6 +52,7 @@ export default async function Page(props: PageProps) {
                             participant={participant}
                             statusValues={recruitmentList.customization?.recruitmentStatusValues || []}
                             recruitmentListId={props.params.id}
+                            studyActions={recruitmentList.studyActions || []}
                         />
                     </Card>
                 </div>
