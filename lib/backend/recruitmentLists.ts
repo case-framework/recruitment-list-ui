@@ -97,6 +97,8 @@ export const updateStudyActions = async (recruitmentListId: string, studyActions
         return { status: response.status, error: response.body.error };
     }
 
+    revalidatePath(`/home/${recruitmentListId}`);
+
     return response.body;
 }
 
