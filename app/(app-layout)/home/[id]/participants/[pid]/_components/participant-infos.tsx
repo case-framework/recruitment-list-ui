@@ -3,9 +3,11 @@
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { updateParticipantStatus } from '@/lib/backend/participants';
-import { Participant } from '@/lib/backend/types';
-import { CopyIcon, Loader2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { executeStudyAction, updateParticipantStatus } from '@/lib/backend/participants';
+import { Participant, StudyAction } from '@/lib/backend/types';
+import { ChevronDownIcon, CopyIcon, InfoIcon, Loader2, PlayIcon } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCopyToClipboard } from 'usehooks-ts';
@@ -15,12 +17,15 @@ interface ParticipantInfosProps {
     infoKeys: string[]
     statusValues: string[]
     recruitmentListId: string
+    studyActions: StudyAction[]
 }
 
 const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
     const [isPending, startTransition] = React.useTransition();
     const [mounted, setMounted] = React.useState(false);
     const [, copyToClipboard] = useCopyToClipboard();
+    const [executingActionId, setExecutingActionId] = React.useState<string | null>(null);
+    const [actionPopoverOpen, setActionPopoverOpen] = React.useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -41,6 +46,26 @@ const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
             }
             toast.success('Participant status updated');
         })
+    }
+
+    const onExecuteAction = async (actionId: string) => {
+        setExecutingActionId(actionId);
+        try {
+            const resp = await executeStudyAction(props.recruitmentListId, props.participant.id, actionId);
+            if (resp.error !== undefined) {
+                console.error(resp.error);
+                toast.error('Could not execute study action', {
+                    description: resp.error,
+                });
+                return;
+            }
+            toast.success('Study action executed successfully');
+        } catch (error) {
+            toast.error('Could not execute study action');
+        } finally {
+            setActionPopoverOpen(false);
+            setExecutingActionId(null);
+        }
     }
 
     return (
@@ -98,6 +123,62 @@ const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
                         </SelectContent>
                     </Select>
                 </div>
+
+                {props.studyActions && props.studyActions.length > 0 && (
+                    <div className='flex justify-between gap-2 items-center my-4'>
+                        <p className='font-medium text-sm w-fit shrink-0'>Study Actions:</p>
+                        <Popover
+                            open={actionPopoverOpen}
+                            onOpenChange={setActionPopoverOpen}
+                        >
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="min-w-64 w-fit relative flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+                                >
+                                    <span className="text-center text-sm grow font-normal">
+                                        Available Study Actions
+                                    </span>
+                                    <ChevronDownIcon className="size-4 ml-2 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-80">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium text-sm mb-3">Available Study Actions</h4>
+                                    {props.studyActions.map(action => (
+                                        <Button
+                                            key={action.id}
+                                            variant="outline"
+                                            className="w-full justify-start"
+                                            disabled={executingActionId !== null}
+                                            onClick={() => onExecuteAction(action.id)}
+                                        >
+                                            {executingActionId === action.id ? (
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <PlayIcon className="h-4 w-4 mr-2 opacity-50" />
+                                            )}
+                                            <>
+                                                <span className="text-start text-sm grow font-normal">
+                                                    {action.label}
+                                                </span>
+                                                <Tooltip delayDuration={200}>
+                                                    <TooltipTrigger asChild>
+                                                        <span>
+                                                            <InfoIcon className="size-4 ml-2 opacity-50" />
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <pre className='text-xs whitespace-pre-wrap'>{action.description}</pre>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </>
+                                        </Button>
+
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                )}
             </div>
             <div className='-mx-4 my-4'>
                 <Separator />

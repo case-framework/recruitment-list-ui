@@ -128,11 +128,21 @@ export const exclusionConditionSchema = z.object({
 
 export type ExclusionCondition = z.infer<typeof exclusionConditionSchema>;
 
+export const studyActionSchema = z.object({
+    id: z.string(),
+    label: z.string().min(3, { message: 'Label must be at least 3 characters' }),
+    description: z.string().min(3, { message: 'Describe the intent of the action' }),
+    encodedAction: z.string().min(3, { message: 'Upload a valid action file' }),
+})
+
+export type StudyAction = z.infer<typeof studyActionSchema>;
+
 export const recruitmentListSchema = recruitmentListInfoSchema.extend({
     participantInclusion: participantInclusionSchema,
     exclusionConditions: z.array(exclusionConditionSchema).optional(),
     participantData: participantDataSchema,
     customization: listCustomizationSchema,
+    studyActions: z.array(studyActionSchema).optional(),
 });
 
 export type RecruitmentList = z.infer<typeof recruitmentListSchema>;

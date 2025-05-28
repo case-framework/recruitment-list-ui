@@ -200,3 +200,27 @@ export const deleteParticipantNote = async (recruitmentListId: string, participa
 
     return response.body;
 }
+
+export const executeStudyAction = async (recruitmentListId: string, participantId: string, actionId: string) => {
+    const session = await auth();
+    if (!session || !session.CASEaccessToken) {
+        return { status: 401, error: 'Unauthorized' };
+    }
+
+    const url = `/v1/recruitment-lists/${recruitmentListId}/participants/${participantId}/execute-action`;
+    const response = await fetchRecruitmentListAPI(
+        url,
+        session.CASEaccessToken,
+        {
+            method: 'POST',
+            body: JSON.stringify({ actionId }),
+            revalidate: 0,
+        }
+    );
+    if (response.status !== 200) {
+        return { status: response.status, error: response.body.error };
+    }
+
+    revalidatePath(`/home/${recruitmentListId}/participants`);
+    return response.body;
+}

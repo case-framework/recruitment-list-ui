@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Import, Settings, Users, RefreshCw, Trash } from "lucide-react"
+import { Import, Settings, Users, RefreshCw, Trash, Play } from "lucide-react"
 
 export default function SettingsNav({
     hasDeleteAccess
@@ -16,6 +16,7 @@ export default function SettingsNav({
     const navItems = [
         { href: `/home/${id}/settings/import`, icon: Import, label: "Import Participants" },
         { href: `/home/${id}/settings/configs`, icon: Settings, label: "Configs" },
+        { href: `/home/${id}/settings/study-actions`, icon: Play, label: "Study Actions" },
         { href: `/home/${id}/settings/permissions`, icon: Users, label: "Permissions" },
         { href: `/home/${id}/settings/sync`, icon: RefreshCw, label: "Sync Info" },
     ]
