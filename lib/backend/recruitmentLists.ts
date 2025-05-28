@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { fetchRecruitmentListAPI } from "./fetch-case-management-api";
-import { RecruitmentList } from "./types";
+import { RecruitmentList, StudyAction } from "./types";
 import { revalidatePath } from "next/cache";
 
 export const getRecruitmentLists = async () => {
@@ -73,6 +73,29 @@ export const updateRecruitmentList = async (recruitmentListId: string, recruitme
     }
 
     revalidatePath('/home');
+
+    return response.body;
+}
+
+export const updateStudyActions = async (recruitmentListId: string, studyActions: StudyAction[]) => {
+    const session = await auth();
+    if (!session || !session.CASEaccessToken) {
+        return { status: 401, error: 'Unauthorized' };
+    }
+
+    const url = `/v1/recruitment-lists/${recruitmentListId}/study-actions`;
+    const response = await fetchRecruitmentListAPI(
+        url,
+        session.CASEaccessToken,
+        {
+            method: 'PUT',
+            body: JSON.stringify({ studyActions: studyActions }),
+            revalidate: 0
+        }
+    );
+    if (response.status !== 200) {
+        return { status: response.status, error: response.body.error };
+    }
 
     return response.body;
 }
