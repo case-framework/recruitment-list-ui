@@ -139,6 +139,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                     setCurrentFilters({ ...currentFilters, recruitmentStatus: null })
                                     return;
                                 }
+
                                 setCurrentFilters({ ...currentFilters, recruitmentStatus: value })
                             }}
                         >
@@ -150,6 +151,12 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                     className='text-muted-foreground'
                                 >
                                     Clear status filter
+                                </SelectItem>
+                                <Separator />
+                                <SelectItem value="_empty_"
+                                    className='text-muted-foreground'
+                                >
+                                    Has no status
                                 </SelectItem>
                                 <Separator />
                                 {props.statusValues.map(status => (
