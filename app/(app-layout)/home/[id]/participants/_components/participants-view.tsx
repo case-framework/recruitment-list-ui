@@ -43,8 +43,17 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
     const [currentQuery, setCurrentQuery] = useState<string>(searchParams.toString());
     const [, copyToClipboard] = useCopyToClipboard();
 
+
     useEffect(() => {
         setMounted(true)
+        // Scroll to element
+        const scrollTo = searchParams.get('scrollTo')
+        if (scrollTo) {
+            document.getElementById(scrollTo)?.scrollIntoView({
+                behavior: 'smooth'
+            })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -139,9 +148,14 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                                 </TableRow>
                             )}
                             {participants.map(participant => (
-                                <TableRow key={participant.participantId}
+                                <TableRow
+                                    id={participant.id}
+                                    key={participant.participantId}
                                     className='cursor-pointer'
                                     onClick={() => {
+                                        const params = new URLSearchParams(searchParams.toString())
+                                        params.set('scrollTo', participant.id)
+                                        router.push(`/home/${props.recruitmentListId}/participants?${params.toString()}`);
                                         router.push(`/home/${props.recruitmentListId}/participants/${participant.id}`);
                                     }}
                                 >
