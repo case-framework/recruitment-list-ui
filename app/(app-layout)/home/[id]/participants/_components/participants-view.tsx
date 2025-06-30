@@ -13,6 +13,7 @@ import SortEditor from './sort-editor';
 import { useCopyToClipboard } from 'usehooks-ts';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useScrollStore } from '@/lib/stores/scroll-store';
 
 interface ParticipantsViewProps {
     recruitmentListId: string
@@ -42,19 +43,30 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
     const searchParams = useSearchParams();
     const [currentQuery, setCurrentQuery] = useState<string>(searchParams.toString());
     const [, copyToClipboard] = useCopyToClipboard();
-
+    const {
+        getParticipantViewScrollPosition,
+        setParticipantViewScrollPosition,
+        clearParticipantViewScrollPosition
+    } = useScrollStore();
 
     useEffect(() => {
         setMounted(true)
-        // Scroll to element
-        const scrollTo = searchParams.get('scrollTo')
-        if (scrollTo) {
-            document.getElementById(scrollTo)?.scrollIntoView({
-                behavior: 'smooth'
-            })
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    useEffect(() => {
+        const scrollPosition = getParticipantViewScrollPosition(props.recruitmentListId);
+        if (scrollPosition) {
+            const timeoutId = setTimeout(() => {
+                document.getElementById(scrollPosition)?.scrollIntoView({
+                    behavior: 'smooth'
+                })
+                clearParticipantViewScrollPosition(props.recruitmentListId)
+            }, 100) // Small delay to ensure DOM is ready
+
+            return () => clearTimeout(timeoutId)
+        }
+    }, [getParticipantViewScrollPosition, clearParticipantViewScrollPosition, props.recruitmentListId])
 
     useEffect(() => {
         if (currentQuery !== searchParams.toString()) {
@@ -153,9 +165,7 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                                     key={participant.participantId}
                                     className='cursor-pointer'
                                     onClick={() => {
-                                        const params = new URLSearchParams(searchParams.toString())
-                                        params.set('scrollTo', participant.id)
-                                        router.push(`/home/${props.recruitmentListId}/participants?${params.toString()}`);
+                                        setParticipantViewScrollPosition(props.recruitmentListId, participant.id);
                                         router.push(`/home/${props.recruitmentListId}/participants/${participant.id}`);
                                     }}
                                 >
