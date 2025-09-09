@@ -211,7 +211,7 @@ const SyncInfoDisplay: React.FC<SyncInfoDisplayProps> = (props) => {
                 </Card>
             </div>
             <ConfirmDialog
-                title="Clean particiapnts and responses"
+                title="Clean participants and responses"
                 description="Are you sure you want to clean the participants and responses? This will remove all participants and responses from the recruitment list."
                 onConfirm={() => {
                     onResetParticipantSync()
