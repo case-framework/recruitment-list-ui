@@ -22,7 +22,7 @@ const MsEntraIDProvider = MSEntraIDProvider({
     name: "MS Entra ID",
     clientId: process.env.OIDC_CLIENT_ID,
     clientSecret: process.env.OIDC_CLIENT_SECRET,
-    tenantId: process.env.MS_ENTRA_TENANT_ID,
+    issuer: process.env.MS_ENTRA_ISSUER,
     authorization: { params: { scope: "openid email profile offline_access" } },
     profile: (profile) => {
         return {
@@ -30,35 +30,39 @@ const MsEntraIDProvider = MSEntraIDProvider({
             name: profile.name,
             roles: profile.roles,
             email: profile.email,
-            image: profile.picture,
         }
     }
 })
 
+const providers: Provider[] = []
 
-
-
-const providers: Provider[] = [
-    MsEntraIDProvider,
-    /*{
-        id: "oidc-provider", // signIn("my-provider") and will be part of the callback URL
-        name: "Signicat", // optional, used on the default login page as the button text.
-        type: "oidc", // or "oauth" for OAuth 2 providers
-        issuer: process.env.OIDC_ISSUER, // to infer the .well-known/openid-configuration URL
-        clientId: process.env.OIDC_CLIENT_ID, // from the provider's dashboard
-        clientSecret: process.env.OIDC_CLIENT_SECRET, // from the provider's dashboard
-        authorization: { params: { scope: "openid email profile offline_access" } },
-        profile: (profile) => {
-            return {
-                sub: profile.sub,
-                name: profile.name,
-                roles: profile.roles,
-                email: profile.email,
-                image: profile.picture,
+const useMsEntraID = process.env.USE_MS_ENTRA_ID === 'true'
+if (useMsEntraID) {
+    providers.push(
+        MsEntraIDProvider,
+    )
+} else {
+    providers.push(
+        {
+            id: "oidc-provider", // signIn("my-provider") and will be part of the callback URL
+            name: "Signicat", // optional, used on the default login page as the button text.
+            type: "oidc", // or "oauth" for OAuth 2 providers
+            issuer: process.env.OIDC_ISSUER, // to infer the .well-known/openid-configuration URL
+            clientId: process.env.OIDC_CLIENT_ID, // from the provider's dashboard
+            clientSecret: process.env.OIDC_CLIENT_SECRET, // from the provider's dashboard
+            authorization: { params: { scope: "openid email profile offline_access" } },
+            profile: (profile) => {
+                return {
+                    sub: profile.sub,
+                    name: profile.name,
+                    roles: profile.roles,
+                    email: profile.email,
+                    image: profile.picture,
+                }
             }
         }
-    }*/
-]
+    )
+}
 
 export const {
     handlers: { GET, POST },
