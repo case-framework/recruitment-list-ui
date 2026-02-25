@@ -11,10 +11,11 @@ export default async function Layout({
     params,
 }: {
     children: React.ReactNode;
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }) {
+    const { id } = await params;
     const session = await auth();
     if (!session || !session.user) {
         redirect('/auth/login');
@@ -28,8 +29,8 @@ export default async function Layout({
         }
 
         const currentPermissions = permissions.permissions || [];
-        const hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id && permission.action === 'manage_recruitment_list');
-        hasDeleteAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id && permission.action === 'delete_recruitment_list');
+        const hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id && permission.action === 'manage_recruitment_list');
+        hasDeleteAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id && permission.action === 'delete_recruitment_list');
         if (!hasManagementAccess && !hasDeleteAccess) {
             redirect('/home');
         }

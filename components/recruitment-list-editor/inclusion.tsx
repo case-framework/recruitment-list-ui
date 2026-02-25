@@ -21,11 +21,13 @@ import NotificationEmailsEditor from './notification-emails-editor';
 
 interface InclusionProps {
     onSubmit: (values: ParticipantInclusion) => void;
+    onChange?: (values: ParticipantInclusion) => void;
     defaultValues: ParticipantInclusion;
     onPrevious?: () => void;
 }
 
 const Inclusion: React.FC<InclusionProps> = (props) => {
+    const { onChange } = props;
     const form = useForm<ParticipantInclusion>({
         resolver: zodResolver(participantInclusionSchema),
         defaultValues: props.defaultValues,
@@ -34,6 +36,26 @@ const Inclusion: React.FC<InclusionProps> = (props) => {
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
 
     const { isDirty } = form.formState;
+
+    React.useEffect(() => {
+        if (!onChange) {
+            return;
+        }
+
+        const subscription = form.watch((values) => {
+            const notificationEmails = values.notificationEmails?.filter(
+                (value): value is string => typeof value === 'string'
+            );
+            onChange({
+                studyKey: values.studyKey || "",
+                type: values.type === 'auto' ? 'auto' : 'manual',
+                autoConfig: values.autoConfig,
+                notificationEmails: notificationEmails,
+            });
+        });
+
+        return () => subscription.unsubscribe();
+    }, [form, onChange]);
 
 
     return (

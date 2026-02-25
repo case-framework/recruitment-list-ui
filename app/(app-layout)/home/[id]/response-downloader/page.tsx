@@ -7,19 +7,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ParticipantInfoDownloader from "./_components/participant-info-downloader";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default async function Page(props: PageProps) {
+    const { id } = await props.params;
 
     const [
         responseInfosResp,
         downloadsResp
     ] = await Promise.all([
-        getAvailableResearchDataInfos(props.params.id),
-        getDownloads(props.params.id),
+        getAvailableResearchDataInfos(id),
+        getDownloads(id),
     ])
 
     const responseInfos = responseInfosResp?.infos || [];
@@ -45,12 +46,12 @@ export default async function Page(props: PageProps) {
                                 </TabsList>
                                 <TabsContent value="participant-infos">
                                     <ParticipantInfoDownloader
-                                        recruitmentListId={props.params.id}
+                                        recruitmentListId={id}
                                     />
                                 </TabsContent>
                                 <TabsContent value="research-data">
                                     <ResponseDownloader
-                                        recruitmentListId={props.params.id}
+                                        recruitmentListId={id}
                                         responseInfos={responseInfos}
                                     />
                                 </TabsContent>
@@ -74,7 +75,7 @@ export default async function Page(props: PageProps) {
                         </CardHeader>
                         <CardContent className="p-4">
                             <DownloadViewer
-                                recruitmentListId={props.params.id}
+                                recruitmentListId={id}
                                 downloadInfos={downloads}
                             />
                         </CardContent>

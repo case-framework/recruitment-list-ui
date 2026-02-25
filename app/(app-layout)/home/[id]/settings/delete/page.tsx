@@ -3,12 +3,13 @@ import { redirect } from "next/navigation";
 import DeleteRl from "./_components/delete-rl";
 
 export default async function Page(props: {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }) {
+    const { id } = await props.params;
 
-    const rlResp = await getRecruitmentList(props.params.id);
+    const rlResp = await getRecruitmentList(id);
     if (rlResp.error !== undefined) {
         redirect('/home');
     }

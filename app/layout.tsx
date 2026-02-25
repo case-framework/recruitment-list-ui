@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AppBackground from "@/components/app-background";
 import { cn } from "@/lib/utils";
+import { ConfirmDialogProvider } from "@/components/c-ui/confirm-provider";
+import { TRPCReactProvider } from "@/trpc/client";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,7 +34,11 @@ export default function RootLayout({
         'h-screen flex flex-col antialiased'
       )}>
         <AppBackground />
-        {children}
+        <TRPCReactProvider>
+          <ConfirmDialogProvider>
+            {children}
+          </ConfirmDialogProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

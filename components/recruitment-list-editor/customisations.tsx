@@ -20,16 +20,35 @@ interface CustomisationsProps {
     isLoading: boolean;
     defaultValues: ListCustomization;
     onSubmit: (values: ListCustomization) => void;
+    onChange?: (values: ListCustomization) => void;
     onPrevious: (values?: ListCustomization) => void;
 }
 
 const Customisations: React.FC<CustomisationsProps> = (props) => {
+    const { onChange } = props;
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
     const form = useForm<ListCustomization>({
         defaultValues: props.defaultValues,
     });
 
     const { isDirty } = form.formState
+
+    React.useEffect(() => {
+        if (!onChange) {
+            return;
+        }
+
+        const subscription = form.watch((values) => {
+            const statusValues = (values.recruitmentStatusValues || []).filter(
+                (value): value is string => typeof value === 'string'
+            );
+            onChange({
+                recruitmentStatusValues: statusValues,
+            });
+        });
+
+        return () => subscription.unsubscribe();
+    }, [form, onChange]);
 
     return (
         <Form {...form}>

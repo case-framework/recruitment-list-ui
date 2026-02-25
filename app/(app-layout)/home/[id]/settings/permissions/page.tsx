@@ -5,15 +5,16 @@ import { getResearchers } from "@/lib/backend/researchers";
 
 
 interface PageParams {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }
 
 export default async function Page(props: PageParams) {
+    const { id } = await props.params;
 
     const [resp, researchersResp] = await Promise.all([
-        getRecruitmentListPermissions(props.params.id),
+        getRecruitmentListPermissions(id),
         getResearchers(),
     ]);
     if (resp.error !== undefined) {
@@ -31,7 +32,7 @@ export default async function Page(props: PageParams) {
             </h2>
             <PermissionEditor
                 permissions={resp.permissions || []}
-                recruitmentListId={props.params.id}
+                recruitmentListId={id}
                 users={researchersResp.researchers || []}
             />
 

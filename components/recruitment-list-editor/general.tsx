@@ -18,16 +18,31 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 interface GeneralProps {
     onSubmit: (values: z.infer<typeof recruitmentListInfoSchema>) => void;
+    onChange?: (values: z.infer<typeof recruitmentListInfoSchema>) => void;
     defaultValues: z.infer<typeof recruitmentListInfoSchema>;
 }
 
 const General: React.FC<GeneralProps> = (props) => {
+    const { onChange } = props;
     const form = useForm<z.infer<typeof recruitmentListInfoSchema>>({
         resolver: zodResolver(recruitmentListInfoSchema),
         defaultValues: props.defaultValues,
     })
 
+    React.useEffect(() => {
+        if (!onChange) {
+            return;
+        }
 
+        const subscription = form.watch((values) => {
+            onChange({
+                name: values.name || "",
+                description: values.description || "",
+            });
+        });
+
+        return () => subscription.unsubscribe();
+    }, [form, onChange]);
 
     return (
         <Form {...form}>

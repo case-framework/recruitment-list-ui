@@ -6,6 +6,7 @@ import MappingEditor from './mapping-editor';
 
 interface ExclusionProps {
     onSubmit: (values?: ExclusionCondition[]) => void;
+    onChange?: (values: ExclusionCondition[]) => void;
     defaultValues?: ExclusionCondition[];
     onPrevious?: () => void;
 }
@@ -32,6 +33,7 @@ const Exclusion: React.FC<ExclusionProps> = (props) => {
                     onChange={(newMapping) => {
                         setCurrentExlusionConditions(newMapping);
                         setIsDirty(true);
+                        props.onChange?.(newMapping);
                     }}
                 />
             </div>

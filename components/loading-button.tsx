@@ -1,10 +1,10 @@
 import React from 'react';
-import { Button, ButtonProps } from './ui/button';
+import { Button } from './ui/button';
 
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
-interface LoadingButtonProps extends ButtonProps {
+interface LoadingButtonProps extends React.ComponentProps<typeof Button> {
     isLoading?: boolean;
 }
 
@@ -12,6 +12,7 @@ const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(({
     isLoading = false,
     disabled = false,
     className,
+    children,
     ...props
 }, ref) => {
     return (
@@ -22,7 +23,7 @@ const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(({
             {...props}
         >
             {isLoading && <Loader2 className='animate-spin size-4' />}
-            {props.children}
+            {children}
         </Button>
     );
 });

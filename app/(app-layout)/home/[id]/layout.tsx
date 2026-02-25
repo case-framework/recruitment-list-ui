@@ -16,10 +16,11 @@ export default async function Layout({
     params,
 }: {
     children: React.ReactNode;
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }) {
+    const { id } = await params;
     const session = await auth();
     if (!session || !session.user) {
         redirect('/auth/login');
@@ -33,8 +34,8 @@ export default async function Layout({
         }
 
         const currentPermissions = permissions.permissions || [];
-        const hasAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id);
-        hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id && permission.action === 'manage_recruitment_list' || permission.action === 'delete_recruitment_list');
+        const hasAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id);
+        hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id && permission.action === 'manage_recruitment_list' || permission.action === 'delete_recruitment_list');
 
         if (!hasAccess) {
             redirect('/home');
@@ -43,7 +44,7 @@ export default async function Layout({
 
     const showSettings = hasManagementAccess || session.isAdmin;
 
-    const rlResp = await getRecruitmentList(params.id);
+    const rlResp = await getRecruitmentList(id);
     if (rlResp.error !== undefined) {
         redirect('/home');
     }
@@ -57,7 +58,7 @@ export default async function Layout({
                     variant={'ghost'}
                     asChild
                 >
-                    <Link href={`/home/${params.id}/settings`}>
+                    <Link href={`/home/${id}/settings`}>
                         <SettingsIcon className="size-5" />
                     </Link>
                 </Button>}

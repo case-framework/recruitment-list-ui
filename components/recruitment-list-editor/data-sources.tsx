@@ -11,11 +11,13 @@ import ResearchDataSourceEditor from './research-data-source-editor';
 
 interface DataSourcesProps {
     onSubmit: (values: ParticipantData) => void;
+    onChange?: (values: ParticipantData) => void;
     defaultValues: ParticipantData;
     onPrevious?: () => void;
 }
 
 const DataSources: React.FC<DataSourcesProps> = (props) => {
+    const { onChange } = props;
     const form = useForm<ParticipantData>({
         resolver: zodResolver(participantDataSchema),
         defaultValues: props.defaultValues,
@@ -24,6 +26,23 @@ const DataSources: React.FC<DataSourcesProps> = (props) => {
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
 
     const { isDirty } = form.formState;
+
+    React.useEffect(() => {
+        if (!onChange) {
+            return;
+        }
+
+        const subscription = form.watch((values) => {
+            const participantInfos = (values.participantInfos || []).filter((value) => value !== undefined);
+            const researchData = (values.researchData || []).filter((value) => value !== undefined);
+            onChange({
+                participantInfos: participantInfos as ParticipantData["participantInfos"],
+                researchData: researchData as ParticipantData["researchData"],
+            });
+        });
+
+        return () => subscription.unsubscribe();
+    }, [form, onChange]);
 
 
     return (

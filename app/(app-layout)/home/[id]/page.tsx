@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
-export default function Page(props: PageProps) {
-    redirect(`/home/${props.params.id}/participants`);
+export default async function Page(props: PageProps) {
+    const { id } = await props.params;
+    redirect(`/home/${id}/participants`);
 }

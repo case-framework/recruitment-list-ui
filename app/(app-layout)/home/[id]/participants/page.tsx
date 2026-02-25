@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
-    searchParams: {
+    }>;
+    searchParams: Promise<{
         // sort attributes
         sortBy?: string;
         sortDir?: string;
@@ -17,20 +17,21 @@ interface PageProps {
         recruitmentStatus?: string;
         includedSince?: string;
         includedUntil?: string;
-    }
+    }>;
 }
 
 export default async function Page(props: PageProps) {
-    const hasFilters = props.searchParams.participantId ||
-        props.searchParams.recruitmentStatus ||
-        props.searchParams.includedSince ||
-        props.searchParams.includedUntil;
+    const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
+    const hasFilters = searchParams.participantId ||
+        searchParams.recruitmentStatus ||
+        searchParams.includedSince ||
+        searchParams.includedUntil;
 
     const pFilters = hasFilters ? {
-        participantId: props.searchParams.participantId || null,
-        recruitmentStatus: props.searchParams.recruitmentStatus || null,
-        includedSince: props.searchParams.includedSince || null,
-        includedUntil: props.searchParams.includedUntil || null,
+        participantId: searchParams.participantId || null,
+        recruitmentStatus: searchParams.recruitmentStatus || null,
+        includedSince: searchParams.includedSince || null,
+        includedUntil: searchParams.includedUntil || null,
     } : undefined;
 
 
@@ -38,8 +39,8 @@ export default async function Page(props: PageProps) {
         recruitmentList,
         participantsPage,
     ] = await Promise.all([
-        getRecruitmentList(props.params.id),
-        getParticipants(props.params.id, 1, pFilters, props.searchParams.sortBy || undefined, props.searchParams.sortDir || undefined),
+        getRecruitmentList(params.id),
+        getParticipants(params.id, 1, pFilters, searchParams.sortBy || undefined, searchParams.sortDir || undefined),
     ]);
 
     if (recruitmentList.error !== undefined) {
@@ -69,7 +70,7 @@ export default async function Page(props: PageProps) {
                 Participants
             </h2>
             <ParticipantsView
-                recruitmentListId={props.params.id}
+                recruitmentListId={params.id}
                 participantInfos={recruitmentList.participantData.participantInfos}
                 participantsPage={currentPageInfos}
                 statusValues={recruitmentList.customization?.recruitmentStatusValues || []}

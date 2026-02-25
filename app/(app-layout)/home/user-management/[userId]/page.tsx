@@ -9,17 +9,18 @@ import { getUserPermissions } from "@/lib/backend/permissions";
 import { getRecruitmentLists } from "@/lib/backend/recruitmentLists";
 
 interface UserPageParams {
-    params: {
+    params: Promise<{
         userId: string;
-    }
+    }>
 
 }
 
 export default async function Page(props: UserPageParams) {
+    const { userId } = await props.params;
 
     const [user, permResponse, rlResp] = await Promise.all([
-        getResearcher(props.params.userId),
-        getUserPermissions(props.params.userId),
+        getResearcher(userId),
+        getUserPermissions(userId),
         getRecruitmentLists(),
     ]);
 

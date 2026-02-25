@@ -2,10 +2,9 @@ import LoadingButton from '@/components/loading-button';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addUserPermission } from '@/lib/backend/permissions';
 import { RecruitmentListInfo } from '@/lib/backend/types';
-import { SelectValue } from '@radix-ui/react-select';
 
 import React, { useEffect } from 'react';
 import { toast } from 'sonner';

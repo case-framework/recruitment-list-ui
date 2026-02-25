@@ -91,7 +91,7 @@ export const participantInfoSchema = z.object({
     id: z.string(),
     label: z.string(),
     sourceType: z.string(),
-    sourceKey: z.string({ required_error: 'Source key is required' }),
+    sourceKey: z.string({ error: 'Source key is required' }),
     showInPreview: z.boolean().optional(),
     mappingType: z.string().optional(),
     mapping: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
