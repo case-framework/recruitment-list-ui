@@ -13,7 +13,7 @@ export default async function Layout({
     return (
         <TooltipProvider>
             <Sidebar />
-            <div className="pl-[56px] h-full">
+            <div className="pl-[53px] h-full">
                 {children}
             </div>
             <Toaster />

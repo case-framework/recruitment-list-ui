@@ -33,6 +33,7 @@ export const recruitmentListInfoSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(2).max(50),
     description: z.string().min(2).max(500),
+    tags: z.array(z.string()).optional(),
     createdAt: z.date().optional(),
     createdBy: z.string().optional(),
 })
