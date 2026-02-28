@@ -73,20 +73,18 @@ export default function Component(props: EnumEditorProps) {
             } else {
                 setItems([...items, { id: Date.now().toString(), value: trimmedValue }])
                 setNewValue("")
-                toast.success("Enum value added successfully.")
             }
         }
     }
 
     const deleteItem = (id: string) => {
         setItems(items.filter(item => item.id !== id))
-        toast.success("Enum value deleted successfully.")
     }
 
     return (
-        <div className="p-4 border rounded-md">
+        <div>
             {items.length === 0 ? (
-                <div className="text-center text-muted-foreground text-sm">No enum values yet. Add some below.</div>
+                <p className="text-center text-muted-foreground text-sm border border-dashed p-4 rounded-md">No enum values yet. Add some below.</p>
             ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={items} strategy={verticalListSortingStrategy}>
@@ -100,10 +98,12 @@ export default function Component(props: EnumEditorProps) {
                 <Input
                     value={newValue}
                     onChange={(e) => setNewValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addItem())}
                     placeholder="New enum value"
                 />
                 <Button
                     type="button"
+                    size='sm'
                     variant={'outline'}
                     onClick={addItem}><Plus className="h-4 w-4 mr-2" /> Add</Button>
             </div>

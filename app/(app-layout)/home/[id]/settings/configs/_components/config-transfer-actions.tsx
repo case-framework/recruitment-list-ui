@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import Filepicker from '@/components/Filepicker';
+import { FilepickerDropzone } from '@/components/c-ui/filepicker-dropzone';
 
 interface ConfigTransferActionsProps {
     recruitmentList: RecruitmentList;
@@ -154,13 +154,13 @@ const ConfigTransferActions: React.FC<ConfigTransferActionsProps> = ({ recruitme
                     </DialogHeader>
 
                     <div className="space-y-4">
-                        <Filepicker
+                        <FilepickerDropzone
                             id="config-file"
                             accept={{
                                 "application/json": [RUI_CONFIG_EXTENSION, ".json"],
                                 "text/plain": [RUI_CONFIG_EXTENSION],
                             }}
-                            placeholders={{
+                            labels={{
                                 upload: `Select a ${RUI_CONFIG_EXTENSION} file`,
                                 drag: "or drag and drop it here",
                             }}

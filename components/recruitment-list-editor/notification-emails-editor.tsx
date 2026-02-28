@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { XIcon } from 'lucide-react';
+import { useConfirm } from '../c-ui/confirm-provider';
 
 interface NotificationEmailsEditorProps {
     notificationEmails?: Array<string>
@@ -12,6 +13,7 @@ interface NotificationEmailsEditorProps {
 
 const NotificationEmailsEditor: React.FC<NotificationEmailsEditorProps> = (props) => {
     const [email, setEmail] = React.useState('');
+    const confirm = useConfirm();
 
     const isValidEmail = (email: string) => {
         email = String(email).toLowerCase()
@@ -27,28 +29,39 @@ const NotificationEmailsEditor: React.FC<NotificationEmailsEditorProps> = (props
         return true;
     }
 
+    const addEmail = () => {
+        if (isValidEmail(email)) {
+            props.onChange([...(props.notificationEmails || []), email])
+            setEmail('')
+        }
+    }
+
     return (
-        <Card>
+        <Card className='bg-neutral-100'>
             <CardHeader>
                 <h4 className='text-lg font-medium'>Notify about new participants</h4>
                 <p className='text-muted-foreground text-sm'>Send an email to the following addresses when a new participant is included in the recruitment list.</p>
             </CardHeader>
 
-            <CardContent className='space-y-8'>
-                <ul className='space-y-2'>
+            <CardContent className='space-y-4'>
+                <ul className='space-y-1'>
                     {(!props.notificationEmails || props.notificationEmails.length === 0) && (
-                        <li className='text-muted-foreground text-sm'>No email addresses added</li>
+                        <li className='text-muted-foreground text-sm border border-dashed p-2 rounded-md border-border text-center'>No email addresses added</li>
                     )}
                     {props.notificationEmails?.map((email, index) => (
                         <li key={index}
-                            className='flex bg-muted items-center justify-between gap-2 text-sm p-2 border rounded-md border-border'
+                            className='flex bg-white items-center justify-between gap-2 text-sm ps-2 pe-0.5 py-0.5 border rounded-md border-border'
                         >
                             {email}
-                            <Button variant='ghost' size='icon'
+                            <Button variant='ghost' size='icon-sm'
                                 className='h-fit w-fit p-1'
                                 type='button'
-                                onClick={() => {
-                                    if (!confirm(`Are you sure you want to remove ${email} from the list?`)) {
+                                onClick={async () => {
+                                    const confirmed = await confirm({
+                                        title: "Confirm Email Removal",
+                                        description: `Are you sure you want to remove ${email} from the list?`,
+                                    })
+                                    if (!confirmed) {
                                         return;
                                     }
                                     const newNotificationEmails = props.notificationEmails?.filter(e => e !== email)
@@ -70,19 +83,18 @@ const NotificationEmailsEditor: React.FC<NotificationEmailsEditorProps> = (props
                     <div className='flex gap-2 items-center'>
                         <Input
                             id='email'
+                            className='bg-white'
                             placeholder='Enter email'
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addEmail())}
                         />
-                        <Button variant='outline'
+                        <Button
+                            variant='outline'
                             type='button'
+                            size='sm'
                             disabled={!isValidEmail(email)}
-                            onClick={() => {
-                                if (isValidEmail(email)) {
-                                    props.onChange([...(props.notificationEmails || []), email])
-                                    setEmail('')
-                                }
-                            }}
+                            onClick={addEmail}
                         >
                             Add
                         </Button>

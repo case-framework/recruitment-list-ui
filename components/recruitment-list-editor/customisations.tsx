@@ -1,9 +1,7 @@
-import { ListCustomization } from '@/lib/backend/types';
-import React from 'react';
-import { ConfirmDialog } from '../confirm-dialog';
-import { Controller, useForm } from 'react-hook-form';
-import { Button } from '../ui/button';
-import { LoadingButton } from '@/components/c-ui/loading-button';
+import { ListCustomization, listCustomizationSchema } from '@/lib/backend/types';
+import { useEffect, useEffectEvent, useRef } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Field,
     FieldDescription,
@@ -12,116 +10,97 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import EnumEditor from './enum-editor';
-import { Separator } from '../ui/separator';
+
+const areStringArraysEqual = (left: string[] | undefined, right: string[] | undefined) => {
+    if (left === right) {
+        return true;
+    }
+
+    if (!left || !right || left.length !== right.length) {
+        return false;
+    }
+
+    return left.every((value, index) => value === right[index]);
+};
 
 interface CustomisationsProps {
-    isLoading: boolean;
-    defaultValues: ListCustomization;
-    onSubmit?: (values: ListCustomization) => void;
+    /** Current values (controlled mode). When provided, form syncs from this. */
+    values?: ListCustomization;
+    /** Initial values (uncontrolled mode). Used when values is not provided. */
+    defaultValues?: ListCustomization;
+    /** Called whenever the user edits. Required for embedding in config editor. */
     onChange?: (values: ListCustomization) => void;
-    onPrevious?: (values?: ListCustomization) => void;
-    hideNavigation?: boolean;
+    onSubmit?: (values: ListCustomization) => void;
+    isLoading?: boolean;
 }
 
-const Customisations: React.FC<CustomisationsProps> = (props) => {
+const Customisations = (props: CustomisationsProps) => {
     const { onChange } = props;
-    const onSubmit = props.onSubmit || (() => undefined);
-    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
+    const isControlled = props.values !== undefined;
+    const initialValues = isControlled ? props.values! : (props.defaultValues ?? { recruitmentStatusValues: [] });
+
     const form = useForm<ListCustomization>({
-        defaultValues: props.defaultValues,
+        resolver: zodResolver(listCustomizationSchema),
+        mode: 'onChange',
+        defaultValues: initialValues,
     });
 
-    const { isDirty } = form.formState
+    useEffect(() => {
+        if (isControlled && props.values) {
+            form.reset(props.values);
+        }
+    }, [form, isControlled, props.values]);
 
-    React.useEffect(() => {
+    const recruitmentStatusValues = useWatch({
+        control: form.control,
+        name: 'recruitmentStatusValues',
+    });
+
+    const lastEmittedValuesRef = useRef<string[] | undefined>(undefined);
+    const emitChange = useEffectEvent((nextValues: string[]) => {
+        onChange?.({
+            recruitmentStatusValues: nextValues,
+        });
+    });
+
+    useEffect(() => {
         if (!onChange) {
             return;
         }
 
-        const subscription = form.watch((values) => {
-            const statusValues = (values.recruitmentStatusValues || []).filter(
-                (value): value is string => typeof value === 'string'
-            );
-            onChange({
-                recruitmentStatusValues: statusValues,
-            });
-        });
+        const nextValues = recruitmentStatusValues ?? [];
+        if (areStringArraysEqual(lastEmittedValuesRef.current, nextValues)) {
+            return;
+        }
 
-        return () => subscription.unsubscribe();
-    }, [form, onChange]);
+        lastEmittedValuesRef.current = [...nextValues];
+        emitChange(nextValues);
+    }, [onChange, recruitmentStatusValues]);
+
+    const onSubmit = props.onSubmit ?? (() => undefined);
 
     return (
-        <>
-            <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-                <FieldGroup>
-                    <Controller
-                        control={form.control}
-                        name="recruitmentStatusValues"
-                        render={({ field, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel>Recruitment status values</FieldLabel>
-                                <FieldDescription>
-                                    These are the possible values for the recruitment status that can be assigned to participants.
-                                </FieldDescription>
-                                <EnumEditor
-                                    values={field.value || []}
-                                    onChange={field.onChange}
-                                />
-                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                            </Field>
-                        )}
-                    />
-                </FieldGroup>
-
-                <Separator />
-
-                {!props.hideNavigation && (
-                    <div className='flex gap-4 justify-between pt-8'>
-                        <Button
-                            variant={'outline'}
-                            className='w-52'
-                            type='button'
-                            disabled={props.isLoading}
-                            onClick={() => {
-                                if (isDirty) {
-                                    setConfirmDialogOpen(true);
-                                    return;
-                                }
-                                props.onPrevious?.()
-                            }}
-                        >
-                            Previous
-                        </Button>
-                        <LoadingButton
-                            type="submit"
-                            isLoading={props.isLoading}
-                            className='w-52'
-                        >
-                            Save
-                        </LoadingButton>
-                    </div>
-                )}
-
-            </form>
-            {!props.hideNavigation && (
-                <ConfirmDialog
-                    isOpen={confirmDialogOpen}
-                    onClose={() => {
-                        props.onPrevious?.()
-                        setConfirmDialogOpen(false);
-                    }}
-                    onConfirm={() => {
-                        setConfirmDialogOpen(false);
-                        props.onPrevious?.(form.getValues())
-
-                    }}
-                    title="Confirm"
-                    description="You have unsaved changes on the current page. Apply these before continuing."
-                    confirmText='Yes'
-                    cancelText='No'
+        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FieldGroup>
+                <Controller
+                    control={form.control}
+                    name="recruitmentStatusValues"
+                    render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel>Recruitment status values</FieldLabel>
+                            <FieldDescription>
+                                These are the possible values for the recruitment status that can be assigned to participants.
+                            </FieldDescription>
+                            <EnumEditor
+                                values={field.value ?? []}
+                                onChange={field.onChange}
+                            />
+                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                        </Field>
+                    )}
                 />
-            )}
-        </>
+            </FieldGroup>
+        </form>
     );
 };
 

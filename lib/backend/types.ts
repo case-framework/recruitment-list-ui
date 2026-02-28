@@ -29,12 +29,14 @@ export type Permission = {
 
 
 
+const optionalDateSchema = z.union([z.date(), z.string()]).optional();
+
 export const recruitmentListInfoSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(2).max(50),
     description: z.string().min(2).max(500),
     tags: z.array(z.string()).optional(),
-    createdAt: z.date().optional(),
+    createdAt: optionalDateSchema,
     createdBy: z.string().optional(),
 })
 export type RecruitmentListInfo = z.infer<typeof recruitmentListInfoSchema>;
@@ -102,8 +104,8 @@ export type ParticipantInfo = z.infer<typeof participantInfoSchema>;
 export const researchDataSchema = z.object({
     id: z.string(),
     surveyKey: z.string(),
-    startDate: z.date().optional(),
-    endDate: z.date().optional(),
+    startDate: optionalDateSchema,
+    endDate: optionalDateSchema,
     excludedColumns: z.array(z.string()).optional(),
 })
 

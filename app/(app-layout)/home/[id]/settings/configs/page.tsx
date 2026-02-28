@@ -39,7 +39,7 @@ export default async function Page(props: PageParams) {
         : normalizeTags(availableTagsResp.tags);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-12">
             <div>
                 <h1 className="text-2xl font-bold">Configs</h1>
                 <p className="text-sm text-muted-foreground">

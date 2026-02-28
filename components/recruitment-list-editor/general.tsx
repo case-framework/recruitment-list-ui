@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from '../ui/textarea';
-import { Button } from '../ui/button';
 import { recruitmentListInfoSchema } from '@/lib/backend/types';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from "zod";
@@ -18,13 +17,13 @@ interface GeneralProps {
     onSubmit?: (values: z.infer<typeof recruitmentListInfoSchema>) => void;
     onChange?: (values: z.infer<typeof recruitmentListInfoSchema>) => void;
     defaultValues: z.infer<typeof recruitmentListInfoSchema>;
-    hideNavigation?: boolean;
 }
 
 const General: React.FC<GeneralProps> = (props) => {
     const { onChange } = props;
     const form = useForm<z.infer<typeof recruitmentListInfoSchema>>({
         resolver: zodResolver(recruitmentListInfoSchema),
+        mode: 'onChange',
         defaultValues: props.defaultValues,
     })
 
@@ -78,16 +77,6 @@ const General: React.FC<GeneralProps> = (props) => {
                     )}
                 />
             </FieldGroup>
-
-            {!props.hideNavigation && (
-                <div className='flex gap-4 justify-end'>
-                    <Button type="submit"
-                        className='w-52'
-                    >
-                        Next
-                    </Button>
-                </div>
-            )}
         </form>
     );
 };

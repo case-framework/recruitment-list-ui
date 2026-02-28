@@ -8,21 +8,18 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Button } from '../ui/button';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { ConfirmDialog } from '../confirm-dialog';
 import InclusionCriteriaEditor from './inclusion-criteria-editor';
 import NotificationEmailsEditor from './notification-emails-editor';
+import { AlertTriangle } from 'lucide-react';
 
 
 interface InclusionProps {
     onSubmit?: (values: ParticipantInclusion) => void;
     onChange?: (values: ParticipantInclusion) => void;
     defaultValues: ParticipantInclusion;
-    onPrevious?: () => void;
-    hideNavigation?: boolean;
 }
 
 const Inclusion: React.FC<InclusionProps> = (props) => {
@@ -30,12 +27,11 @@ const Inclusion: React.FC<InclusionProps> = (props) => {
     const onSubmit = props.onSubmit || (() => undefined);
     const form = useForm<ParticipantInclusion>({
         resolver: zodResolver(participantInclusionSchema),
+        mode: 'onChange',
         defaultValues: props.defaultValues,
     })
 
-    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
-
-    const { isDirty } = form.formState;
+    const studyKey = form.watch('studyKey');
 
     React.useEffect(() => {
         if (!onChange) {
@@ -72,6 +68,14 @@ const Inclusion: React.FC<InclusionProps> = (props) => {
                                 <FieldDescription>
                                     Define the study key from which participants will be selected.
                                 </FieldDescription>
+                                {studyKey?.trim() === '__not_configured__' && (
+                                    <p className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                                        <span>
+                                            This list is still using the placeholder study key. Set a real study key before production use.
+                                        </span>
+                                    </p>
+                                )}
                                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                             </Field>
                         )}
@@ -139,50 +143,7 @@ const Inclusion: React.FC<InclusionProps> = (props) => {
                         />
                     )}
                 </FieldGroup>
-
-                {!props.hideNavigation && (
-                    <div className='flex gap-4 justify-between'>
-                        <Button
-                            variant={'outline'}
-                            className='w-52'
-                            type='button'
-                            onClick={() => {
-                                if (isDirty) {
-                                    setConfirmDialogOpen(true);
-                                    return;
-                                }
-                                props.onPrevious?.()
-                            }}
-                        >
-                            Previous
-                        </Button>
-                        <Button type="submit"
-                            className='w-52'
-                        >
-                            Next
-                        </Button>
-                    </div>
-                )}
             </form>
-            {!props.hideNavigation && (
-                <ConfirmDialog
-                    isOpen={confirmDialogOpen}
-                    onClose={() => {
-                        props.onPrevious?.()
-                        setConfirmDialogOpen(false);
-                    }}
-                    onConfirm={() => {
-                        setConfirmDialogOpen(false);
-                        onSubmit(form.getValues());
-                        props.onPrevious?.()
-
-                    }}
-                    title="Confirm"
-                    description="You have unsaved changes on the current page. Apply these before continuing."
-                    confirmText='Yes'
-                    cancelText='No'
-                />
-            )}
         </>
     );
 };

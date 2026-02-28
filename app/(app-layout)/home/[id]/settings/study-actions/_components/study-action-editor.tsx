@@ -1,5 +1,5 @@
 import ExpressionPreview from "@/components/expression-preview/expression-preview";
-import Filepicker from "@/components/Filepicker";
+import { FilepickerDropzone } from "@/components/c-ui/filepicker-dropzone";
 import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StudyAction } from "@/lib/backend/types";
 import { Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -34,9 +34,13 @@ const StudyActionEditor: React.FC<StudyActionEditorProps> = ({ action, open, isL
     )
     const [errorMsg, setErrorMsg] = useState<string | undefined>(undefined);
 
-    useEffect(() => {
+    const resetEditorState = useEffectEvent(() => {
         setCurrentAction(action || generateDefaultEmptyAction());
         setErrorMsg(undefined);
+    });
+
+    useEffect(() => {
+        resetEditorState();
     }, [action, open]);
 
     return (
@@ -72,7 +76,7 @@ const StudyActionEditor: React.FC<StudyActionEditorProps> = ({ action, open, isL
                 />
             </Label>
 
-            <Filepicker
+            <FilepickerDropzone
                 label="Select a study action"
                 id="study-action-editor-filepicker"
                 accept={{
@@ -100,7 +104,7 @@ const StudyActionEditor: React.FC<StudyActionEditorProps> = ({ action, open, isL
                                         ...prev,
                                         encodedAction: text
                                     }));
-                                } catch (e) {
+                                } catch {
                                     setErrorMsg('Invalid JSON file');
                                     return;
                                 }
@@ -134,10 +138,10 @@ const StudyActionEditor: React.FC<StudyActionEditorProps> = ({ action, open, isL
                     isLoading={isLoading}
                     disabled={!currentAction.encodedAction || currentAction.label === '' || currentAction.description === ''}
                     onClick={() => {
-                        if (currentAction.id === '') {
-                            currentAction.id = uuidv4();
-                        }
-                        onChange(currentAction);
+                        const actionToSave = currentAction.id === ''
+                            ? { ...currentAction, id: uuidv4() }
+                            : currentAction;
+                        onChange(actionToSave);
                     }}
                 >
                     Save

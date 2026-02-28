@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import {
     ChevronDown,
+    CircleAlert,
     CircleCheck,
     CircleDotDashed,
     Database,
@@ -42,7 +43,7 @@ import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Label } from '../ui/label';
-import Filepicker from '../Filepicker';
+import { FilepickerDropzone } from '../c-ui/filepicker-dropzone';
 import General from './general';
 import Inclusion from './inclusion';
 import ExclusionEditor from './exclusion';
@@ -68,7 +69,13 @@ type SectionProgress = {
     iconClassName: string;
 };
 
+type SectionIssue = {
+    path: string;
+    message: string;
+};
+
 const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+const UNCONFIGURED_STUDY_KEY = '__not_configured__';
 
 const normalizeTags = (rawTags: unknown): string[] => {
     if (!Array.isArray(rawTags)) {
@@ -89,6 +96,28 @@ const areTagsEqual = (a: string[], b: string[]) => {
 
     return a.every((tag, index) => tag === b[index]);
 };
+
+const normalizeRecruitmentListForComparison = (recruitmentList: RecruitmentList) => ({
+    id: recruitmentList.id,
+    name: recruitmentList.name,
+    description: recruitmentList.description,
+    participantInclusion: {
+        ...recruitmentList.participantInclusion,
+        notificationEmails: recruitmentList.participantInclusion.notificationEmails ?? [],
+    },
+    exclusionConditions: recruitmentList.exclusionConditions ?? [],
+    participantData: recruitmentList.participantData,
+    customization: {
+        ...recruitmentList.customization,
+        recruitmentStatusValues: recruitmentList.customization.recruitmentStatusValues ?? [],
+    },
+    studyActions: recruitmentList.studyActions ?? [],
+});
+
+const areRecruitmentListsEqual = (a: RecruitmentList, b: RecruitmentList) => (
+    JSON.stringify(normalizeRecruitmentListForComparison(a))
+    === JSON.stringify(normalizeRecruitmentListForComparison(b))
+);
 
 const createDefaultRecruitmentList = (): RecruitmentList => ({
     id: undefined,
@@ -114,6 +143,56 @@ const sanitizeFileName = (rawName: string) => {
     return normalizedName.length > 0 ? normalizedName : 'recruitment-list';
 };
 
+const getSectionForIssuePath = (path: PropertyKey[]): SectionName | undefined => {
+    const topLevelField = String(path[0] || '');
+    const sectionByField: Record<string, SectionName> = {
+        name: 'general',
+        description: 'general',
+        tags: 'general',
+        participantInclusion: 'inclusion',
+        participantData: 'data',
+        exclusionConditions: 'exclusion',
+        customization: 'customization',
+    };
+
+    return sectionByField[topLevelField];
+};
+
+const formatIssuePathForSection = (section: SectionName, path: PropertyKey[]) => {
+    const relativePath = section === 'general'
+        ? path
+        : path[0] === 'participantInclusion'
+            || path[0] === 'participantData'
+            || path[0] === 'exclusionConditions'
+            || path[0] === 'customization'
+            ? path.slice(1)
+            : path;
+
+    if (relativePath.length === 0) {
+        return section;
+    }
+
+    return relativePath.reduce<string>((result, segment) => {
+        if (typeof segment === 'number') {
+            return `${result}[${segment + 1}]`;
+        }
+
+        if (typeof segment !== 'string') {
+            return result;
+        }
+
+        return result.length === 0 ? segment : `${result}.${segment}`;
+    }, '');
+};
+
+const createEmptySectionIssues = (): Record<SectionName, SectionIssue[]> => ({
+    general: [],
+    inclusion: [],
+    exclusion: [],
+    data: [],
+    customization: [],
+});
+
 const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
     const initialRecruitmentList = props.recruitmentList || createDefaultRecruitmentList();
 
@@ -123,6 +202,7 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
     const [formSeed, setFormSeed] = React.useState(0);
     const [openSections, setOpenSections] = React.useState<SectionName[]>(['general']);
     const [recruitmentList, setRecruitmentList] = React.useState<RecruitmentList>(initialRecruitmentList);
+    const [savedRecruitmentList, setSavedRecruitmentList] = React.useState<RecruitmentList>(initialRecruitmentList);
     const [savedTags, setSavedTags] = React.useState<string[]>(() => (
         normalizeTags(props.initialTags ?? initialRecruitmentList.tags)
     ));
@@ -141,6 +221,43 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         () => normalizeTags([...(props.availableTags || []), ...savedTags, ...draftTags]),
         [props.availableTags, savedTags, draftTags]
     );
+    const hasUnconfiguredStudyKey = recruitmentList.participantInclusion.studyKey.trim() === UNCONFIGURED_STUDY_KEY;
+    const hasUnsavedChanges = React.useMemo(() => (
+        !areRecruitmentListsEqual(savedRecruitmentList, recruitmentList)
+        || !areTagsEqual(savedTags, normalizeTags(draftTags))
+    ), [savedRecruitmentList, recruitmentList, savedTags, draftTags]);
+
+    const sectionIssues = React.useMemo(() => {
+        const issues = createEmptySectionIssues();
+        const parsedValues = recruitmentListSchema.safeParse({
+            ...recruitmentList,
+            tags: draftTags,
+        });
+
+        if (!parsedValues.success) {
+            parsedValues.error.issues.forEach((issue) => {
+                const section = getSectionForIssuePath(issue.path);
+                if (section === undefined) {
+                    return;
+                }
+
+                issues[section].push({
+                    path: formatIssuePathForSection(section, issue.path),
+                    message: issue.message,
+                });
+            });
+        }
+
+        return issues;
+    }, [recruitmentList, draftTags]);
+
+    const sectionIssueCounts = React.useMemo(() => ({
+        general: sectionIssues.general.length,
+        inclusion: sectionIssues.inclusion.length,
+        exclusion: sectionIssues.exclusion.length,
+        data: sectionIssues.data.length,
+        customization: sectionIssues.customization.length,
+    }), [sectionIssues]);
 
     const stepProgress: SectionProgress[] = [
         {
@@ -151,45 +268,50 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             isComplete: recruitmentListInfoSchema.safeParse({
                 name: recruitmentList.name,
                 description: recruitmentList.description,
-            }).success,
+            }).success && sectionIssueCounts.general === 0,
             icon: FileText,
-            iconClassName: 'text-blue-600',
+            iconClassName: 'text-muted-foreground',
         },
         {
             section: 'inclusion',
             label: 'Participant inclusion',
             helperText: 'Study key, inclusion type, and criteria',
             isRequired: true,
-            isComplete: participantInclusionSchema.safeParse(recruitmentList.participantInclusion).success,
+            isComplete: participantInclusionSchema.safeParse(recruitmentList.participantInclusion).success
+                && !hasUnconfiguredStudyKey
+                && sectionIssueCounts.inclusion === 0,
             icon: Filter,
-            iconClassName: 'text-emerald-600',
+            iconClassName: 'text-muted-foreground',
         },
         {
             section: 'exclusion',
             label: 'Exclusion conditions',
             helperText: 'Rules to exclude participants',
             isRequired: false,
-            isComplete: (recruitmentList.exclusionConditions?.length || 0) > 0,
+            isComplete: (recruitmentList.exclusionConditions?.length || 0) > 0 && sectionIssueCounts.exclusion === 0,
             icon: X,
-            iconClassName: 'text-red-500',
+            iconClassName: 'text-muted-foreground',
         },
         {
             section: 'data',
             label: 'Participant data',
             helperText: 'Participant info and research data sources',
             isRequired: true,
-            isComplete: recruitmentList.participantData.participantInfos.length > 0 && recruitmentList.participantData.researchData.length > 0,
+            isComplete: recruitmentList.participantData.participantInfos.length > 0
+                && recruitmentList.participantData.researchData.length > 0
+                && sectionIssueCounts.data === 0,
             icon: Database,
-            iconClassName: 'text-fuchsia-600',
+            iconClassName: 'text-muted-foreground',
         },
         {
             section: 'customization',
             label: 'List customization',
             helperText: 'Custom recruitment status values',
             isRequired: false,
-            isComplete: (recruitmentList.customization.recruitmentStatusValues?.length || 0) > 0,
+            isComplete: (recruitmentList.customization.recruitmentStatusValues?.length || 0) > 0
+                && sectionIssueCounts.customization === 0,
             icon: SlidersHorizontal,
-            iconClassName: 'text-orange-600',
+            iconClassName: 'text-muted-foreground',
         },
     ];
 
@@ -291,24 +413,28 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         });
 
         if (!parsedValues.success) {
-            const firstIssue = parsedValues.error.issues[0];
-            const topLevelField = String(firstIssue?.path?.[0] || '');
-            const sectionByField: Record<string, SectionName> = {
-                name: 'general',
-                description: 'general',
-                tags: 'general',
-                participantInclusion: 'inclusion',
-                participantData: 'data',
-                exclusionConditions: 'exclusion',
-                customization: 'customization',
-            };
-            const targetSection = sectionByField[topLevelField];
-            if (targetSection !== undefined) {
-                ensureSectionOpen(targetSection);
+            const sectionsWithIssues = (Object.keys(sectionIssues) as SectionName[])
+                .filter((section) => sectionIssues[section].length > 0);
+
+            if (sectionsWithIssues.length > 0) {
+                setOpenSections((previousValue) => {
+                    const nextValue = [...previousValue];
+                    sectionsWithIssues.forEach((section) => {
+                        if (!nextValue.includes(section)) {
+                            nextValue.push(section);
+                        }
+                    });
+                    return nextValue;
+                });
             }
 
+            const firstSectionWithIssues = sectionsWithIssues[0];
+            const firstIssue = firstSectionWithIssues
+                ? sectionIssues[firstSectionWithIssues][0]
+                : undefined;
+
             toast.error('Please resolve validation issues before saving', {
-                description: firstIssue?.message,
+                description: firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : undefined,
             });
             return;
         }
@@ -373,6 +499,10 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                 }
             }
 
+            setSavedRecruitmentList({
+                ...parsedValues.data,
+                id: recruitmentList.id,
+            });
             setSavedTags(normalizedDraftTags);
             toast.success('Recruitment list updated');
             router.refresh();
@@ -385,7 +515,6 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                 <div className='space-y-6'>
                     <General
                         key={`general-${formSeed}`}
-                        hideNavigation
                         defaultValues={{
                             name: recruitmentList.name,
                             description: recruitmentList.description,
@@ -419,7 +548,6 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             return (
                 <Inclusion
                     key={`inclusion-${formSeed}`}
-                    hideNavigation
                     defaultValues={recruitmentList.participantInclusion}
                     onChange={(inclusion) => {
                         setRecruitmentList((previousValue) => ({
@@ -435,7 +563,6 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             return (
                 <ExclusionEditor
                     key={`exclusion-${formSeed}`}
-                    hideNavigation
                     defaultValues={recruitmentList.exclusionConditions}
                     onChange={(exclusionConditions) => {
                         setRecruitmentList((previousValue) => ({
@@ -451,7 +578,6 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             return (
                 <DataSources
                     key={`data-${formSeed}`}
-                    hideNavigation
                     defaultValues={recruitmentList.participantData}
                     onChange={(data) => {
                         setRecruitmentList((previousValue) => ({
@@ -466,7 +592,6 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         return (
             <Customisations
                 key={`customization-${formSeed}`}
-                hideNavigation
                 isLoading={isPending}
                 defaultValues={recruitmentList.customization}
                 onChange={(customization) => {
@@ -480,37 +605,17 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
     };
 
     return (
-        <div className='space-y-5'>
-            <div className='sticky top-3 z-10 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80'>
-                <div className='flex flex-wrap items-center justify-between gap-3'>
-                    <div>
-                        <p className='text-sm font-medium'>
-                            {remainingRequiredCount === 0
-                                ? 'All required sections are configured.'
-                                : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's' : ''} still need attention.`}
-                        </p>
-                        <p className='text-xs text-muted-foreground'>
-                            Save changes at any time while editing sections below.
-                        </p>
-                    </div>
-                    <div className='flex flex-wrap items-center gap-2'>
-                        <Button variant='outline' onClick={handleExport}>
-                            <Download className='mr-2 size-4' />
-                            Export
-                        </Button>
-                        <Button variant='outline' onClick={() => setIsImportDialogOpen(true)}>
-                            <Upload className='mr-2 size-4' />
-                            Import
-                        </Button>
-                        <Button
-                            onClick={() => persistRecruitmentList(recruitmentList)}
-                            disabled={isPending}
-                            size='lg'
-                        >
-                            {isPending ? <Loader2 className='mr-2 size-4 animate-spin' /> : <Save className='mr-2 size-4' />}
-                            Save changes
-                        </Button>
-                    </div>
+        <div className='space-y-5 pb-32 relative block w-full'>
+            <div className='rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80'>
+                <div>
+                    <p className='text-sm font-medium'>
+                        {remainingRequiredCount === 0
+                            ? 'All required sections are configured.'
+                            : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's' : ''} still need attention.`}
+                    </p>
+                    <p className='text-xs text-muted-foreground'>
+                        Import, export, and save actions are available in the floating bar at the bottom.
+                    </p>
                 </div>
             </div>
 
@@ -518,6 +623,8 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                 {stepProgress.map((section) => {
                     const isOpen = openSections.includes(section.section);
                     const SectionIcon = section.icon;
+                    const issues = sectionIssues[section.section];
+                    const hasIssues = issues.length > 0;
 
                     return (
                         <Collapsible
@@ -542,10 +649,19 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                                         <SectionIcon className={cn('size-5 shrink-0', section.iconClassName)} />
                                         <div className='min-w-0'>
                                             <p className='font-medium'>{section.label}</p>
-                                            <p className='text-sm text-muted-foreground'>{section.helperText}</p>
+                                            <p className={cn('text-sm', hasIssues ? 'text-destructive' : 'text-muted-foreground')}>
+                                                {hasIssues
+                                                    ? `${issues.length} validation issue${issues.length > 1 ? 's' : ''} in this section`
+                                                    : section.helperText}
+                                            </p>
                                         </div>
                                         <div className='ml-auto flex items-center gap-3'>
-                                            {section.isComplete ? (
+                                            {hasIssues ? (
+                                                <div className='flex items-center gap-1 text-destructive'>
+                                                    <CircleAlert className='size-4' />
+                                                    <span className='text-xs font-medium'>{issues.length}</span>
+                                                </div>
+                                            ) : section.isComplete ? (
                                                 <CircleCheck className='size-4 text-emerald-600' />
                                             ) : section.isRequired ? (
                                                 <CircleDotDashed className='size-4 text-amber-600' />
@@ -557,6 +673,18 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                                 <CollapsibleContent>
                                     <div className='border-t px-4 pb-4 pt-5 bg-white'>
                                         {renderSectionContent(section.section)}
+                                        {hasIssues && (
+                                            <div className='mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3'>
+                                                <p className='text-sm font-medium text-destructive'>Fix these fields before saving</p>
+                                                <ul className='mt-2 space-y-1 text-sm text-destructive'>
+                                                    {issues.map((issue, index) => (
+                                                        <li key={`${issue.path}-${issue.message}-${index}`}>
+                                                            <span className='font-mono text-xs'>{issue.path}</span>: {issue.message}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                 </CollapsibleContent>
                             </div>
@@ -582,13 +710,13 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                         </DialogDescription>
                     </DialogHeader>
                     <div className='space-y-4'>
-                        <Filepicker
+                        <FilepickerDropzone
                             id='setup-config-file'
                             accept={{
                                 'application/json': [RUI_CONFIG_EXTENSION, '.json'],
                                 'text/plain': [RUI_CONFIG_EXTENSION],
                             }}
-                            placeholders={{
+                            labels={{
                                 upload: `Select a ${RUI_CONFIG_EXTENSION} file`,
                                 drag: 'or drag and drop it here',
                             }}
@@ -624,6 +752,36 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <div className='pointer-events-none sticky bottom-4 z-30 mt-4 w-full px-4'>
+                <div className='bg-primary/5 pointer-events-auto mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 p-3 shadow-lg backdrop-blur'>
+                    <p className='text-sm'>
+                        {!hasUnsavedChanges
+                            ? 'No unsaved changes.'
+                            : remainingRequiredCount === 0
+                                ? 'Ready to save.'
+                                : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's are' : ' is'} still incomplete.`}
+                    </p>
+                    <div className='flex flex-wrap items-center gap-2'>
+                        <Button variant='outline' onClick={handleExport}>
+                            <Download className='mr-2 size-4' />
+                            Export
+                        </Button>
+                        <Button variant='outline' onClick={() => setIsImportDialogOpen(true)}>
+                            <Upload className='mr-2 size-4' />
+                            Import
+                        </Button>
+                        <Button
+                            onClick={() => persistRecruitmentList(recruitmentList)}
+                            disabled={isPending || !hasUnsavedChanges}
+                            size='lg'
+                        >
+                            {isPending ? <Loader2 className='mr-2 size-4 animate-spin' /> : <Save className='mr-2 size-4' />}
+                            Save changes
+                        </Button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

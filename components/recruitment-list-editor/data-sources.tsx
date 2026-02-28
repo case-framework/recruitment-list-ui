@@ -3,9 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import ParticipantInfoSourceEditor from './participant-info-source-editor';
 import { ParticipantData, participantDataSchema } from '@/lib/backend/types';
-import { Button } from '../ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ConfirmDialog } from '../confirm-dialog';
 import { Separator } from '../ui/separator';
 import ResearchDataSourceEditor from './research-data-source-editor';
 
@@ -13,8 +11,6 @@ interface DataSourcesProps {
     onSubmit?: (values: ParticipantData) => void;
     onChange?: (values: ParticipantData) => void;
     defaultValues: ParticipantData;
-    onPrevious?: () => void;
-    hideNavigation?: boolean;
 }
 
 const DataSources: React.FC<DataSourcesProps> = (props) => {
@@ -22,12 +18,9 @@ const DataSources: React.FC<DataSourcesProps> = (props) => {
     const onSubmit = props.onSubmit || (() => undefined);
     const form = useForm<ParticipantData>({
         resolver: zodResolver(participantDataSchema),
+        mode: 'onChange',
         defaultValues: props.defaultValues,
     })
-
-    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
-
-    const { isDirty } = form.formState;
 
     React.useEffect(() => {
         if (!onChange) {
@@ -93,50 +86,7 @@ const DataSources: React.FC<DataSourcesProps> = (props) => {
                         )}
                     />
                 </FieldGroup>
-
-                {!props.hideNavigation && (
-                    <div className='flex gap-4 justify-between'>
-                        <Button
-                            variant={'outline'}
-                            className='w-52'
-                            type='button'
-                            onClick={() => {
-                                if (isDirty) {
-                                    setConfirmDialogOpen(true);
-                                    return;
-                                }
-                                props.onPrevious?.()
-                            }}
-                        >
-                            Previous
-                        </Button>
-                        <Button type="submit"
-                            className='w-52'
-                        >
-                            Next
-                        </Button>
-                    </div>
-                )}
             </form>
-            {!props.hideNavigation && (
-                <ConfirmDialog
-                    isOpen={confirmDialogOpen}
-                    onClose={() => {
-                        props.onPrevious?.()
-                        setConfirmDialogOpen(false);
-                    }}
-                    onConfirm={() => {
-                        setConfirmDialogOpen(false);
-                        onSubmit(form.getValues());
-                        props.onPrevious?.()
-
-                    }}
-                    title="Confirm"
-                    description="You have unsaved changes on the current page. Apply these before continuing."
-                    confirmText='Yes'
-                    cancelText='No'
-                />
-            )}
         </>
     );
 };
