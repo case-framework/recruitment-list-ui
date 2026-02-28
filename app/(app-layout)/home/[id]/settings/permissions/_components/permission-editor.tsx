@@ -138,7 +138,9 @@ const PermissionEditor: React.FC<PermissionEditorProps> = (props) => {
                         </Label>
                         <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start">
+                                <Button variant="outline"
+                                    size='sm'
+                                    className="w-full justify-start">
                                     {selectedUser ? (
                                         <>
                                             <Avatar className="mr-2 h-5 w-5">
@@ -188,10 +190,15 @@ const PermissionEditor: React.FC<PermissionEditorProps> = (props) => {
                             className='text-sm font-medium'
                         >Action</Label>
                         <Select onValueChange={setSelectedAction}>
-                            <SelectTrigger>
+                            <SelectTrigger
+                                className='bg-background border-input hover:bg-input/50 shadow-xs text-foreground rounded-md'
+
+                            >
                                 <SelectValue placeholder="Select action" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent
+                                className='p-1'
+                            >
                                 <SelectItem value="access_recruitment_list">Access recruitment list</SelectItem>
                                 <SelectItem value="delete_recruitment_list">Delete recruitment list</SelectItem>
                                 <SelectItem value="manage_recruitment_list">Manage recruitment list</SelectItem>
@@ -201,6 +208,7 @@ const PermissionEditor: React.FC<PermissionEditorProps> = (props) => {
 
                     <LoadingButton
                         variant={'outline'}
+                        size='sm'
                         isLoading={isPending}
                         disabled={!selectedAction || !userId}
                         onClick={onAddPermission}
