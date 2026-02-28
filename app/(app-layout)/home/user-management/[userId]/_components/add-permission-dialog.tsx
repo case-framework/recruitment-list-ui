@@ -1,4 +1,4 @@
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { addUserPermission } from '@/lib/backend/permissions';
 import { RecruitmentListInfo } from '@/lib/backend/types';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useEffectEvent } from 'react';
 import { toast } from 'sonner';
 
 interface AddPermissionDialogProps {
@@ -28,9 +28,13 @@ const AddPermissionDialog: React.FC<AddPermissionDialogProps> = (props) => {
     const [selectedAction, setSelectedAction] = React.useState<string | null>(null);
     const [resourceId, setResourceId] = React.useState<string | null>(null);
 
-    useEffect(() => {
+    const onReset = useEffectEvent(() => {
         setResourceId(null);
         setSelectedAction(null);
+    });
+
+    useEffect(() => {
+        onReset();
     }, [props.isOpen]);
 
     const onAddPermission = async () => {

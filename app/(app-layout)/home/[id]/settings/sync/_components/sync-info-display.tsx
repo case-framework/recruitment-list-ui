@@ -1,7 +1,7 @@
 'use client'
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { getSyncInfos, resetDataSyncTimeNull, resetParticipantSyncTimeNull, syncParticipantsNow, syncResponsesNow } from '@/lib/backend/recruitmentLists';

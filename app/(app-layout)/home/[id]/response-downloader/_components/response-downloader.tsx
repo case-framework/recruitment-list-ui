@@ -1,6 +1,6 @@
 'use client'
 
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startResponseDownload } from '@/lib/backend/downloads';
 import { Label } from '@/components/ui/label';

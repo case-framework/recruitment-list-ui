@@ -39,22 +39,28 @@ export default async function Page(props: PageProps) {
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
 
-                            <Tabs defaultValue="research-data">
-                                <TabsList>
+                            <Tabs
+                                defaultValue="research-data"
+                            >
+                                <TabsList
+
+                                >
                                     <TabsTrigger value="research-data">Research data</TabsTrigger>
                                     <TabsTrigger value="participant-infos">Participant infos</TabsTrigger>
                                 </TabsList>
-                                <TabsContent value="participant-infos">
-                                    <ParticipantInfoDownloader
-                                        recruitmentListId={id}
-                                    />
-                                </TabsContent>
-                                <TabsContent value="research-data">
-                                    <ResponseDownloader
-                                        recruitmentListId={id}
-                                        responseInfos={responseInfos}
-                                    />
-                                </TabsContent>
+                                <div>
+                                    <TabsContent value="participant-infos">
+                                        <ParticipantInfoDownloader
+                                            recruitmentListId={id}
+                                        />
+                                    </TabsContent>
+                                    <TabsContent value="research-data">
+                                        <ResponseDownloader
+                                            recruitmentListId={id}
+                                            responseInfos={responseInfos}
+                                        />
+                                    </TabsContent>
+                                </div>
                             </Tabs>
 
                         </CardContent>

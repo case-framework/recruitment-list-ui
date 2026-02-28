@@ -51,7 +51,6 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
 
     useEffect(() => {
         setMounted(true)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -136,7 +135,7 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                 />
                 <SortEditor />
             </div>
-            <Card>
+            <Card className='p-0'>
                 <div className="w-full overflow-auto z-10">
 
                     <Table>
@@ -154,7 +153,7 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
                         <TableBody>
                             {participants.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={participantInfos.length + 2} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={participantInfos.length + 3} className="text-center text-muted-foreground">
                                         No participants yet.
                                     </TableCell>
                                 </TableRow>

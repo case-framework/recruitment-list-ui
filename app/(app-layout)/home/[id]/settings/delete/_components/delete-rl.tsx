@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import React from 'react';
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { useRouter } from "next/navigation"
-import LoadingButton from "@/components/loading-button"
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { deleteRecruitmentList } from "@/lib/backend/recruitmentLists"
 import { toast } from "sonner"
 

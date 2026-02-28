@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -9,7 +9,7 @@ import { ParticipantFilters } from '@/lib/backend/participants';
 import { format } from 'date-fns';
 import { CalendarIcon, FilterIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
 interface FilterEditorProps {
     statusValues: string[]
@@ -33,15 +33,19 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
         includedUntil: null,
     })
 
-
-    useEffect(() => {
+    const onSetCurrentFilters = useEffectEvent(() => {
         setCurrentFilters({
             participantId: searchParams.get('participantId') || null,
             recruitmentStatus: searchParams.get('recruitmentStatus') || null,
             includedSince: searchParams.get('includedSince') || null,
             includedUntil: searchParams.get('includedUntil') || null,
         })
-    }, [open, searchParams])
+    })
+
+
+    useEffect(() => {
+        onSetCurrentFilters()
+    }, [open])
 
     const hasChanges = () => {
         return currentFilters.participantId !== searchParams.get('participantId') ||
@@ -108,12 +112,8 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                 <div className='w-96 space-y-4'>
                     <h3 className='text-lg font-bold'>Filter by</h3>
 
-                    <Label
-                        className='space-y-1.5 block'
-                    >
-                        <span>
-                            Participant ID
-                        </span>
+                    <Field>
+                        <FieldLabel>Participant ID</FieldLabel>
                         <Input
                             placeholder='ID of participant to find'
                             className='w-full text-xs font-mono'
@@ -123,56 +123,53 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                 setCurrentFilters({ ...currentFilters, participantId: value })
                             }}
                         />
+                    </Field>
 
-                    </Label>
+                    {props.statusValues.length > 0 && (
+                        <Field>
+                            <FieldLabel>Recruitment status</FieldLabel>
+                            <Select
+                                value={currentFilters.recruitmentStatus || ''}
+                                onValueChange={value => {
+                                    if (value === '___') {
+                                        setCurrentFilters({ ...currentFilters, recruitmentStatus: null })
+                                        return;
+                                    }
 
-                    {props.statusValues.length > 0 && <Label
-                        className='space-y-1.5 block'
-                    >
-                        <span>
-                            Recruitment status
-                        </span>
-                        <Select
-                            value={currentFilters.recruitmentStatus || ''}
-                            onValueChange={value => {
-                                if (value === '___') {
-                                    setCurrentFilters({ ...currentFilters, recruitmentStatus: null })
-                                    return;
-                                }
-
-                                setCurrentFilters({ ...currentFilters, recruitmentStatus: value })
-                            }}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select recruitment status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="___"
-                                    className='text-muted-foreground'
-                                >
-                                    Clear status filter
-                                </SelectItem>
-                                <Separator />
-                                <SelectItem value="_empty_"
-                                    className='text-muted-foreground'
-                                >
-                                    Has no status
-                                </SelectItem>
-                                <Separator />
-                                {props.statusValues.map(status => (
-                                    <SelectItem
-                                        key={status}
-                                        value={status}>
-                                        {status}
+                                    setCurrentFilters({ ...currentFilters, recruitmentStatus: value })
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select recruitment status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="___"
+                                        className='text-muted-foreground'
+                                    >
+                                        Clear status filter
                                     </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </Label>}
+                                    <Separator />
+                                    <SelectItem value="_empty_"
+                                        className='text-muted-foreground'
+                                    >
+                                        Has no status
+                                    </SelectItem>
+                                    <Separator />
+                                    {props.statusValues.map(status => (
+                                        <SelectItem
+                                            key={status}
+                                            value={status}>
+                                            {status}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                    )}
 
                     <div className='flex gap-4 justify-between'>
-                        <div className="space-y-1 w-44">
-                            <Label htmlFor="startDate">Imported later than</Label>
+                        <Field className="w-44">
+                            <FieldLabel htmlFor="startDate">Imported later than</FieldLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -200,10 +197,10 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                     />
                                 </PopoverContent>
                             </Popover>
-                        </div>
+                        </Field>
 
-                        <div className="space-y-1 w-44">
-                            <Label htmlFor="endDate">Imported earlier than</Label>
+                        <Field className="w-44">
+                            <FieldLabel htmlFor="endDate">Imported earlier than</FieldLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -232,7 +229,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                     />
                                 </PopoverContent>
                             </Popover>
-                        </div>
+                        </Field>
                     </div>
 
                     <Separator />

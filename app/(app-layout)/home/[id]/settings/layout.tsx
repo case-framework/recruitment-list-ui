@@ -38,17 +38,16 @@ export default async function Layout({
 
 
     return (
-        <div className="h-full flex flex-col">
-
-            <div className="flex grow">
+        <div className="h-full min-h-0 overflow-hidden">
+            <div className="flex h-full min-h-0 min-w-0">
                 <SettingsNav
                     hasDeleteAccess={session.isAdmin || hasDeleteAccess}
                 />
-                <div
-                    className="py-5 px-8 w-full"
-                >
-                    {children}
-                </div>
+                <main className="min-w-0 flex-1 overflow-y-auto px-8 py-5">
+                    <div className="mx-auto w-full max-w-[1200px] min-w-0">
+                        {children}
+                    </div>
+                </main>
             </div>
         </div>
     );

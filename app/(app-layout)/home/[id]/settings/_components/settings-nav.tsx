@@ -26,19 +26,21 @@ export default function SettingsNav({
     }
 
     return (
-        <nav className="flex flex-col space-y-2 w-64 px-4 py-1 bg-neutral-50 border-r border-border">
+        <nav className="h-full w-64 shrink-0 overflow-y-auto border-r border-border bg-neutral-50 px-4 py-1">
             <h2 className="text-lg font-bold px-4 mb-2 pt-4">Settings</h2>
-            {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                    <Button
-                        variant={pathname === item.href ? "secondary" : "ghost"}
-                        className={`w-full justify-start`}
-                    >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {item.label}
-                    </Button>
-                </Link>
-            ))}
+            <div className="space-y-2 pb-4">
+                {navItems.map((item) => (
+                    <Link key={item.href} href={item.href}>
+                        <Button
+                            variant={pathname === item.href ? "secondary" : "ghost"}
+                            className="w-full justify-start"
+                        >
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {item.label}
+                        </Button>
+                    </Link>
+                ))}
+            </div>
         </nav>
     )
 }

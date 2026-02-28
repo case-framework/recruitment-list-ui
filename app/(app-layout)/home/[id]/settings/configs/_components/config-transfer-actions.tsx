@@ -1,9 +1,8 @@
 'use client'
 
 import React from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Download, Upload, Loader2, FileText, Copy } from 'lucide-react';
+import { Download, Upload, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { FileWithPath } from 'react-dropzone';
 
@@ -22,7 +21,6 @@ import Filepicker from '@/components/Filepicker';
 
 interface ConfigTransferActionsProps {
     recruitmentList: RecruitmentList;
-    canDuplicate: boolean;
 }
 
 const sanitizeFileName = (rawName: string) => {
@@ -30,7 +28,7 @@ const sanitizeFileName = (rawName: string) => {
     return normalizedName.length > 0 ? normalizedName : "recruitment-list";
 }
 
-const ConfigTransferActions: React.FC<ConfigTransferActionsProps> = ({ recruitmentList, canDuplicate }) => {
+const ConfigTransferActions: React.FC<ConfigTransferActionsProps> = ({ recruitmentList }) => {
     const router = useRouter();
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
@@ -137,15 +135,6 @@ const ConfigTransferActions: React.FC<ConfigTransferActionsProps> = ({ recruitme
                 <Upload className="mr-2 size-4" />
                 Import config
             </Button>
-
-            {canDuplicate && (
-                <Button variant="outline" asChild>
-                    <Link href={`/home/new?from=${recruitmentList.id}`}>
-                        <Copy className="mr-2 size-4" />
-                        Duplicate config
-                    </Link>
-                </Button>
-            )}
 
             <Dialog
                 open={isImportDialogOpen}

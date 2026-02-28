@@ -1,6 +1,6 @@
 import ExpressionPreview from "@/components/expression-preview/expression-preview";
 import Filepicker from "@/components/Filepicker";
-import LoadingButton from "@/components/loading-button";
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

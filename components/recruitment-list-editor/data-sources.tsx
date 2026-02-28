@@ -1,23 +1,25 @@
 import React from 'react';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Controller, useForm } from 'react-hook-form';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import ParticipantInfoSourceEditor from './participant-info-source-editor';
 import { ParticipantData, participantDataSchema } from '@/lib/backend/types';
 import { Button } from '../ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
 import { ConfirmDialog } from '../confirm-dialog';
 import { Separator } from '../ui/separator';
 import ResearchDataSourceEditor from './research-data-source-editor';
 
 interface DataSourcesProps {
-    onSubmit: (values: ParticipantData) => void;
+    onSubmit?: (values: ParticipantData) => void;
     onChange?: (values: ParticipantData) => void;
     defaultValues: ParticipantData;
     onPrevious?: () => void;
+    hideNavigation?: boolean;
 }
 
 const DataSources: React.FC<DataSourcesProps> = (props) => {
     const { onChange } = props;
+    const onSubmit = props.onSubmit || (() => undefined);
     const form = useForm<ParticipantData>({
         resolver: zodResolver(participantDataSchema),
         defaultValues: props.defaultValues,
@@ -46,97 +48,96 @@ const DataSources: React.FC<DataSourcesProps> = (props) => {
 
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(props.onSubmit)} className="space-y-8">
-
-                <FormField
-                    control={form.control}
-                    name="participantInfos"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className='text-lg'>
-                                Participant Info Source
-                            </FormLabel>
-                            <FormDescription>
-                                Configure what data source should be used to populate the participant info. This will be used to create the participant info table.
-                            </FormDescription>
-                            <FormControl>
+        <>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <FieldGroup>
+                    <Controller
+                        control={form.control}
+                        name="participantInfos"
+                        render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel className='text-lg'>
+                                    Participant Info Source
+                                </FieldLabel>
                                 <ParticipantInfoSourceEditor
                                     values={field.value}
-                                    onChange={(values) => field.onChange(values)}
+                                    onChange={field.onChange}
                                 />
-                            </FormControl>
+                                <FieldDescription>
+                                    Configure what data source should be used to populate the participant info. This will be used to create the participant info table.
+                                </FieldDescription>
+                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                        )}
+                    />
 
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                    <Separator />
 
-                <Separator />
-
-                <FormField
-                    control={form.control}
-                    name="researchData"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className='text-lg'>
-                                Research Data Source
-                            </FormLabel>
-                            <FormDescription>
-                                What responses should be available in this recruitment list.
-                            </FormDescription>
-                            <FormControl>
+                    <Controller
+                        control={form.control}
+                        name="researchData"
+                        render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel className='text-lg'>
+                                    Research Data Source
+                                </FieldLabel>
                                 <ResearchDataSourceEditor
                                     values={field.value}
-                                    onChange={(values) => field.onChange(values)}
+                                    onChange={field.onChange}
                                 />
-                            </FormControl>
+                                <FieldDescription>
+                                    What responses should be available in this recruitment list.
+                                </FieldDescription>
+                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                        )}
+                    />
+                </FieldGroup>
 
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-
-
-                <div className='flex gap-4 justify-between'>
-                    <Button
-                        variant={'outline'}
-                        className='w-52'
-                        type='button'
-                        onClick={() => {
-                            if (isDirty) {
-                                setConfirmDialogOpen(true);
-                                return;
-                            }
-                            props.onPrevious && props.onPrevious()
-                        }}
-                    >
-                        Previous
-                    </Button>
-                    <Button type="submit"
-                        className='w-52'
-                    >
-                        Next
-                    </Button>
-                </div>
+                {!props.hideNavigation && (
+                    <div className='flex gap-4 justify-between'>
+                        <Button
+                            variant={'outline'}
+                            className='w-52'
+                            type='button'
+                            onClick={() => {
+                                if (isDirty) {
+                                    setConfirmDialogOpen(true);
+                                    return;
+                                }
+                                props.onPrevious?.()
+                            }}
+                        >
+                            Previous
+                        </Button>
+                        <Button type="submit"
+                            className='w-52'
+                        >
+                            Next
+                        </Button>
+                    </div>
+                )}
             </form>
-            <ConfirmDialog
-                isOpen={confirmDialogOpen}
-                onClose={() => {
-                    props.onPrevious && props.onPrevious()
-                    setConfirmDialogOpen(false);
-                }}
-                onConfirm={() => {
-                    setConfirmDialogOpen(false);
-                    props.onSubmit(form.getValues());
-                    props.onPrevious && props.onPrevious()
+            {!props.hideNavigation && (
+                <ConfirmDialog
+                    isOpen={confirmDialogOpen}
+                    onClose={() => {
+                        props.onPrevious?.()
+                        setConfirmDialogOpen(false);
+                    }}
+                    onConfirm={() => {
+                        setConfirmDialogOpen(false);
+                        onSubmit(form.getValues());
+                        props.onPrevious?.()
 
-                }}
-                title="Confirm"
-                description="You have unsaved changes on the current page. Apply these before continuing."
-                confirmText='Yes'
-                cancelText='No'
-            />
-        </Form >
+                    }}
+                    title="Confirm"
+                    description="You have unsaved changes on the current page. Apply these before continuing."
+                    confirmText='Yes'
+                    cancelText='No'
+                />
+            )}
+        </>
     );
 };
 

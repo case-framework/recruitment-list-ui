@@ -27,5 +27,6 @@ export const httpStatusToTrpcErrorCode = {
 export const recruitmentListManagementErrorMessages = {
   getRecruitmentLists: 'could not get recruitment lists',
   getRecruitmentListTags: 'could not get recruitment list tags',
+  createPlaceholderRecruitmentList: 'could not create recruitment list',
   updateRecruitmentListTags: 'could not update recruitment list tags',
 } as const;

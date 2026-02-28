@@ -1,6 +1,6 @@
 'use client'
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';

@@ -167,8 +167,6 @@ export const getSyncInfos = async (recruitmentListId: string) => {
         return { status: response.status, error: response.body.error };
     }
 
-    revalidatePath('/home');
-
     return response.body;
 }
 
