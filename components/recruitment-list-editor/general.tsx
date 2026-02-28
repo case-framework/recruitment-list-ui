@@ -1,51 +1,21 @@
-import React from 'react';
+import { Controller, useFormContext } from 'react-hook-form';
+
+import { RecruitmentList } from '@/lib/backend/types';
 import {
     Field,
     FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '../ui/textarea';
-import { recruitmentListInfoSchema } from '@/lib/backend/types';
-import { Controller, useForm } from 'react-hook-form';
-import { z } from "zod";
-import { zodResolver } from '@hookform/resolvers/zod';
 
-interface GeneralProps {
-    onSubmit?: (values: z.infer<typeof recruitmentListInfoSchema>) => void;
-    onChange?: (values: z.infer<typeof recruitmentListInfoSchema>) => void;
-    defaultValues: z.infer<typeof recruitmentListInfoSchema>;
-}
-
-const General: React.FC<GeneralProps> = (props) => {
-    const { onChange } = props;
-    const form = useForm<z.infer<typeof recruitmentListInfoSchema>>({
-        resolver: zodResolver(recruitmentListInfoSchema),
-        mode: 'onChange',
-        defaultValues: props.defaultValues,
-    })
-
-    React.useEffect(() => {
-        if (!onChange) {
-            return;
-        }
-
-        const subscription = form.watch((values) => {
-            onChange({
-                name: values.name || "",
-                description: values.description || "",
-            });
-        });
-
-        return () => subscription.unsubscribe();
-    }, [form, onChange]);
-
-    const onSubmit = props.onSubmit || (() => undefined);
+const General = () => {
+    const form = useFormContext<RecruitmentList>();
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="space-y-8">
             <FieldGroup>
                 <Controller
                     control={form.control}
@@ -77,7 +47,7 @@ const General: React.FC<GeneralProps> = (props) => {
                     )}
                 />
             </FieldGroup>
-        </form>
+        </div>
     );
 };
 

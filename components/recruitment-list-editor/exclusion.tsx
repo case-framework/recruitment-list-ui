@@ -1,19 +1,18 @@
-import { ExclusionCondition } from '@/lib/backend/types';
-import React, { useState } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
+
+import { RecruitmentList } from '@/lib/backend/types';
 import MappingEditor from './mapping-editor';
 
-interface ExclusionProps {
-    onSubmit?: (values?: ExclusionCondition[]) => void;
-    onChange?: (values: ExclusionCondition[]) => void;
-    defaultValues?: ExclusionCondition[];
-}
-
-const Exclusion: React.FC<ExclusionProps> = (props) => {
-    const [currentExlusionConditions, setCurrentExlusionConditions] = useState<ExclusionCondition[]>(props.defaultValues || []);
+const Exclusion = () => {
+    const form = useFormContext<RecruitmentList>();
+    const exclusionConditions = useWatch({
+        control: form.control,
+        name: 'exclusionConditions',
+    });
 
     return (
         <div className='space-y-8'>
-            <div className=''>
+            <div>
                 <p className='text-lg font-medium'>
                     Exclusion conditions (optional)
                 </p>
@@ -21,10 +20,12 @@ const Exclusion: React.FC<ExclusionProps> = (props) => {
                     If for any of the following the participant info contains the key and value, the participant will be excluded from the recruitment list. The participant infos and responses of this participant will be deleted form the list.
                 </p>
                 <MappingEditor
-                    mapping={currentExlusionConditions}
+                    mapping={exclusionConditions ?? []}
                     onChange={(newMapping) => {
-                        setCurrentExlusionConditions(newMapping);
-                        props.onChange?.(newMapping);
+                        form.setValue('exclusionConditions', newMapping, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                        });
                     }}
                 />
             </div>

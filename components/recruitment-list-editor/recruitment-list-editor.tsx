@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import {
     ChevronDown,
@@ -19,6 +19,7 @@ import {
     X,
 } from 'lucide-react';
 import { FileWithPath } from 'react-dropzone';
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import {
@@ -97,6 +98,54 @@ const areTagsEqual = (a: string[], b: string[]) => {
     return a.every((tag, index) => tag === b[index]);
 };
 
+const createDefaultRecruitmentList = (): RecruitmentList => ({
+    id: undefined,
+    name: '',
+    description: '',
+    participantInclusion: {
+        studyKey: '',
+        type: 'manual',
+        autoConfig: undefined,
+        notificationEmails: [],
+    },
+    participantData: {
+        participantInfos: [],
+        researchData: [],
+    },
+    customization: {
+        recruitmentStatusValues: [],
+    },
+    exclusionConditions: [],
+    studyActions: [],
+    tags: [],
+});
+
+const normalizeRecruitmentListForForm = (recruitmentList: RecruitmentList, rawTags?: unknown): RecruitmentList => {
+    const defaults = createDefaultRecruitmentList();
+
+    return {
+        ...defaults,
+        ...recruitmentList,
+        name: recruitmentList.name ?? '',
+        description: recruitmentList.description ?? '',
+        tags: normalizeTags(rawTags ?? recruitmentList.tags),
+        participantInclusion: {
+            ...defaults.participantInclusion,
+            ...recruitmentList.participantInclusion,
+            notificationEmails: recruitmentList.participantInclusion?.notificationEmails ?? [],
+        },
+        exclusionConditions: recruitmentList.exclusionConditions ?? [],
+        participantData: {
+            participantInfos: recruitmentList.participantData?.participantInfos ?? [],
+            researchData: recruitmentList.participantData?.researchData ?? [],
+        },
+        customization: {
+            recruitmentStatusValues: recruitmentList.customization?.recruitmentStatusValues ?? [],
+        },
+        studyActions: recruitmentList.studyActions ?? [],
+    };
+};
+
 const normalizeRecruitmentListForComparison = (recruitmentList: RecruitmentList) => ({
     id: recruitmentList.id,
     name: recruitmentList.name,
@@ -118,25 +167,6 @@ const areRecruitmentListsEqual = (a: RecruitmentList, b: RecruitmentList) => (
     JSON.stringify(normalizeRecruitmentListForComparison(a))
     === JSON.stringify(normalizeRecruitmentListForComparison(b))
 );
-
-const createDefaultRecruitmentList = (): RecruitmentList => ({
-    id: undefined,
-    name: '',
-    description: '',
-    participantInclusion: {
-        studyKey: '',
-        type: 'manual',
-        autoConfig: undefined,
-    },
-    participantData: {
-        participantInfos: [],
-        researchData: [],
-    },
-    customization: {
-        recruitmentStatusValues: [],
-    },
-    tags: [],
-});
 
 const sanitizeFileName = (rawName: string) => {
     const normalizedName = rawName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -194,21 +224,35 @@ const createEmptySectionIssues = (): Record<SectionName, SectionIssue[]> => ({
 });
 
 const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
-    const initialRecruitmentList = props.recruitmentList || createDefaultRecruitmentList();
-
     const router = useRouter();
     const [isPending, startTransition] = React.useTransition();
 
+    const baseRecruitmentList = React.useMemo(
+        () => props.recruitmentList || createDefaultRecruitmentList(),
+        [props.recruitmentList]
+    );
+
+    const initialFormValues = React.useMemo(
+        () => normalizeRecruitmentListForForm(baseRecruitmentList, props.initialTags ?? baseRecruitmentList.tags),
+        [baseRecruitmentList, props.initialTags]
+    );
+
+    const form = useForm<RecruitmentList>({
+        resolver: zodResolver(recruitmentListSchema),
+        mode: 'onChange',
+        defaultValues: initialFormValues,
+    });
+
+    const watchedValues = useWatch({ control: form.control }) as RecruitmentList | undefined;
+    const recruitmentList = React.useMemo(
+        () => normalizeRecruitmentListForForm(watchedValues ?? initialFormValues),
+        [initialFormValues, watchedValues]
+    );
+
     const [formSeed, setFormSeed] = React.useState(0);
     const [openSections, setOpenSections] = React.useState<SectionName[]>(['general']);
-    const [recruitmentList, setRecruitmentList] = React.useState<RecruitmentList>(initialRecruitmentList);
-    const [savedRecruitmentList, setSavedRecruitmentList] = React.useState<RecruitmentList>(initialRecruitmentList);
-    const [savedTags, setSavedTags] = React.useState<string[]>(() => (
-        normalizeTags(props.initialTags ?? initialRecruitmentList.tags)
-    ));
-    const [draftTags, setDraftTags] = React.useState<string[]>(() => (
-        normalizeTags(props.initialTags ?? initialRecruitmentList.tags)
-    ));
+    const [savedRecruitmentList, setSavedRecruitmentList] = React.useState<RecruitmentList>(initialFormValues);
+    const [savedTags, setSavedTags] = React.useState<string[]>(() => normalizeTags(initialFormValues.tags));
 
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [selectedImportFileName, setSelectedImportFileName] = React.useState<string>();
@@ -216,15 +260,18 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
     const [importedPackage, setImportedPackage] = React.useState<RuiConfigPackage>();
 
     const isNew = recruitmentList.id === undefined;
+    const draftTags = normalizeTags(recruitmentList.tags);
 
     const availableTagOptions = React.useMemo(
         () => normalizeTags([...(props.availableTags || []), ...savedTags, ...draftTags]),
         [props.availableTags, savedTags, draftTags]
     );
+
     const hasUnconfiguredStudyKey = recruitmentList.participantInclusion.studyKey.trim() === UNCONFIGURED_STUDY_KEY;
+
     const hasUnsavedChanges = React.useMemo(() => (
         !areRecruitmentListsEqual(savedRecruitmentList, recruitmentList)
-        || !areTagsEqual(savedTags, normalizeTags(draftTags))
+        || !areTagsEqual(savedTags, draftTags)
     ), [savedRecruitmentList, recruitmentList, savedTags, draftTags]);
 
     const sectionIssues = React.useMemo(() => {
@@ -370,12 +417,13 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             return;
         }
 
-        setRecruitmentList((previousValue) => ({
-            ...previousValue,
+        const currentId = form.getValues('id');
+        const importedValues = normalizeRecruitmentListForForm({
             ...importedPackage.config,
-            id: previousValue.id,
-        }));
-        setDraftTags(normalizeTags(importedPackage.config.tags));
+            id: currentId,
+        } as RecruitmentList);
+
+        form.reset(importedValues);
         ensureSectionOpen('general');
         setFormSeed((previousValue) => previousValue + 1);
         setIsImportDialogOpen(false);
@@ -406,10 +454,11 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         URL.revokeObjectURL(url);
     };
 
-    const persistRecruitmentList = (values: z.infer<typeof recruitmentListSchema>) => {
+    const persistRecruitmentList = () => {
+        const values = normalizeRecruitmentListForForm(form.getValues());
         const parsedValues = recruitmentListSchema.safeParse({
             ...values,
-            tags: draftTags,
+            tags: normalizeTags(values.tags),
         });
 
         if (!parsedValues.success) {
@@ -439,7 +488,7 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             return;
         }
 
-        const normalizedDraftTags = normalizeTags(draftTags);
+        const normalizedDraftTags = normalizeTags(parsedValues.data.tags);
 
         startTransition(async () => {
             if (isNew) {
@@ -499,10 +548,12 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
                 }
             }
 
-            setSavedRecruitmentList({
+            const persistedValues = normalizeRecruitmentListForForm({
                 ...parsedValues.data,
                 id: recruitmentList.id,
             });
+
+            setSavedRecruitmentList(persistedValues);
             setSavedTags(normalizedDraftTags);
             toast.success('Recruitment list updated');
             router.refresh();
@@ -513,28 +564,21 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         if (section === 'general') {
             return (
                 <div className='space-y-6'>
-                    <General
-                        key={`general-${formSeed}`}
-                        defaultValues={{
-                            name: recruitmentList.name,
-                            description: recruitmentList.description,
-                        }}
-                        onChange={(general) => {
-                            setRecruitmentList((previousValue) => ({
-                                ...previousValue,
-                                name: general.name,
-                                description: general.description,
-                            }));
-                        }}
-                    />
+                    <General key={`general-${formSeed}`} />
 
                     <div className='space-y-2'>
                         <Label>Tags</Label>
-                        <TagEditorCompact
-                            key={`tags-${formSeed}`}
-                            availableTags={availableTagOptions}
-                            initialTags={draftTags}
-                            onChange={setDraftTags}
+                        <Controller
+                            control={form.control}
+                            name='tags'
+                            render={({ field }) => (
+                                <TagEditorCompact
+                                    key={`tags-${formSeed}`}
+                                    availableTags={availableTagOptions}
+                                    value={normalizeTags(field.value)}
+                                    onChange={field.onChange}
+                                />
+                            )}
                         />
                         <p className='text-sm text-muted-foreground'>
                             Tags help categorize this list on the overview page.
@@ -545,244 +589,201 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         }
 
         if (section === 'inclusion') {
-            return (
-                <Inclusion
-                    key={`inclusion-${formSeed}`}
-                    defaultValues={recruitmentList.participantInclusion}
-                    onChange={(inclusion) => {
-                        setRecruitmentList((previousValue) => ({
-                            ...previousValue,
-                            participantInclusion: inclusion,
-                        }));
-                    }}
-                />
-            );
+            return <Inclusion key={`inclusion-${formSeed}`} />;
         }
 
         if (section === 'exclusion') {
-            return (
-                <ExclusionEditor
-                    key={`exclusion-${formSeed}`}
-                    defaultValues={recruitmentList.exclusionConditions}
-                    onChange={(exclusionConditions) => {
-                        setRecruitmentList((previousValue) => ({
-                            ...previousValue,
-                            exclusionConditions,
-                        }));
-                    }}
-                />
-            );
+            return <ExclusionEditor key={`exclusion-${formSeed}`} />;
         }
 
         if (section === 'data') {
-            return (
-                <DataSources
-                    key={`data-${formSeed}`}
-                    defaultValues={recruitmentList.participantData}
-                    onChange={(data) => {
-                        setRecruitmentList((previousValue) => ({
-                            ...previousValue,
-                            participantData: data,
-                        }));
-                    }}
-                />
-            );
+            return <DataSources key={`data-${formSeed}`} />;
         }
 
-        return (
-            <Customisations
-                key={`customization-${formSeed}`}
-                isLoading={isPending}
-                defaultValues={recruitmentList.customization}
-                onChange={(customization) => {
-                    setRecruitmentList((previousValue) => ({
-                        ...previousValue,
-                        customization,
-                    }));
-                }}
-            />
-        );
+        return <Customisations key={`customization-${formSeed}`} />;
     };
 
     return (
-        <div className='space-y-5 pb-32 relative block w-full'>
-            <div className='rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80'>
-                <div>
-                    <p className='text-sm font-medium'>
-                        {remainingRequiredCount === 0
-                            ? 'All required sections are configured.'
-                            : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's' : ''} still need attention.`}
-                    </p>
-                    <p className='text-xs text-muted-foreground'>
-                        Import, export, and save actions are available in the floating bar at the bottom.
-                    </p>
+        <FormProvider {...form}>
+            <div className='space-y-5 pb-32 relative block w-full'>
+                <div className='rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80'>
+                    <div>
+                        <p className='text-sm font-medium'>
+                            {remainingRequiredCount === 0
+                                ? 'All required sections are configured.'
+                                : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's' : ''} still need attention.`}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                            Import, export, and save actions are available in the floating bar at the bottom.
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <div className='space-y-3'>
-                {stepProgress.map((section) => {
-                    const isOpen = openSections.includes(section.section);
-                    const SectionIcon = section.icon;
-                    const issues = sectionIssues[section.section];
-                    const hasIssues = issues.length > 0;
+                <div className='space-y-3'>
+                    {stepProgress.map((section) => {
+                        const isOpen = openSections.includes(section.section);
+                        const SectionIcon = section.icon;
+                        const issues = sectionIssues[section.section];
+                        const hasIssues = issues.length > 0;
 
-                    return (
-                        <Collapsible
-                            key={section.section}
-                            open={isOpen}
-                            onOpenChange={(nextValue) => {
-                                setOpenSections((previousValue) => (
-                                    nextValue
-                                        ? (previousValue.includes(section.section)
-                                            ? previousValue
-                                            : [...previousValue, section.section])
-                                        : previousValue.filter((value) => value !== section.section)
-                                ));
-                            }}
-                        >
-                            <div className={cn('overflow-hidden rounded-lg border bg-white', isOpen && 'ring-1 ring-border/80')}>
-                                <CollapsibleTrigger asChild>
-                                    <button
-                                        type='button'
-                                        className='flex w-full items-center gap-3 px-4 py-3 text-left bg-muted/50 hover:bg-accent/30'
-                                    >
-                                        <SectionIcon className={cn('size-5 shrink-0', section.iconClassName)} />
-                                        <div className='min-w-0'>
-                                            <p className='font-medium'>{section.label}</p>
-                                            <p className={cn('text-sm', hasIssues ? 'text-destructive' : 'text-muted-foreground')}>
-                                                {hasIssues
-                                                    ? `${issues.length} validation issue${issues.length > 1 ? 's' : ''} in this section`
-                                                    : section.helperText}
-                                            </p>
-                                        </div>
-                                        <div className='ml-auto flex items-center gap-3'>
-                                            {hasIssues ? (
-                                                <div className='flex items-center gap-1 text-destructive'>
-                                                    <CircleAlert className='size-4' />
-                                                    <span className='text-xs font-medium'>{issues.length}</span>
-                                                </div>
-                                            ) : section.isComplete ? (
-                                                <CircleCheck className='size-4 text-emerald-600' />
-                                            ) : section.isRequired ? (
-                                                <CircleDotDashed className='size-4 text-amber-600' />
-                                            ) : null}
-                                            <ChevronDown className={cn('size-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
-                                        </div>
-                                    </button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <div className='border-t px-4 pb-4 pt-5 bg-white'>
-                                        {renderSectionContent(section.section)}
-                                        {hasIssues && (
-                                            <div className='mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3'>
-                                                <p className='text-sm font-medium text-destructive'>Fix these fields before saving</p>
-                                                <ul className='mt-2 space-y-1 text-sm text-destructive'>
-                                                    {issues.map((issue, index) => (
-                                                        <li key={`${issue.path}-${issue.message}-${index}`}>
-                                                            <span className='font-mono text-xs'>{issue.path}</span>: {issue.message}
-                                                        </li>
-                                                    ))}
-                                                </ul>
+                        return (
+                            <Collapsible
+                                key={section.section}
+                                open={isOpen}
+                                onOpenChange={(nextValue) => {
+                                    setOpenSections((previousValue) => (
+                                        nextValue
+                                            ? (previousValue.includes(section.section)
+                                                ? previousValue
+                                                : [...previousValue, section.section])
+                                            : previousValue.filter((value) => value !== section.section)
+                                    ));
+                                }}
+                            >
+                                <div className={cn('overflow-hidden rounded-lg border bg-white', isOpen && 'ring-1 ring-border/80')}>
+                                    <CollapsibleTrigger asChild>
+                                        <button
+                                            type='button'
+                                            className='flex w-full items-center gap-3 px-4 py-3 text-left bg-muted/50 hover:bg-accent/30'
+                                        >
+                                            <SectionIcon className={cn('size-5 shrink-0', section.iconClassName)} />
+                                            <div className='min-w-0'>
+                                                <p className='font-medium'>{section.label}</p>
+                                                <p className={cn('text-sm', hasIssues ? 'text-destructive' : 'text-muted-foreground')}>
+                                                    {hasIssues
+                                                        ? `${issues.length} validation issue${issues.length > 1 ? 's' : ''} in this section`
+                                                        : section.helperText}
+                                                </p>
                                             </div>
-                                        )}
-                                    </div>
-                                </CollapsibleContent>
-                            </div>
-                        </Collapsible>
-                    );
-                })}
-            </div>
+                                            <div className='ml-auto flex items-center gap-3'>
+                                                {hasIssues ? (
+                                                    <div className='flex items-center gap-1 text-destructive'>
+                                                        <CircleAlert className='size-4' />
+                                                        <span className='text-xs font-medium'>{issues.length}</span>
+                                                    </div>
+                                                ) : section.isComplete ? (
+                                                    <CircleCheck className='size-4 text-emerald-600' />
+                                                ) : section.isRequired ? (
+                                                    <CircleDotDashed className='size-4 text-amber-600' />
+                                                ) : null}
+                                                <ChevronDown className={cn('size-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
+                                            </div>
+                                        </button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <div className='border-t px-4 pb-4 pt-5 bg-white'>
+                                            {renderSectionContent(section.section)}
+                                            {hasIssues && (
+                                                <div className='mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3'>
+                                                    <p className='text-sm font-medium text-destructive'>Fix these fields before saving</p>
+                                                    <ul className='mt-2 space-y-1 text-sm text-destructive'>
+                                                        {issues.map((issue, index) => (
+                                                            <li key={`${issue.path}-${issue.message}-${index}`}>
+                                                                <span className='font-mono text-xs'>{issue.path}</span>: {issue.message}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CollapsibleContent>
+                                </div>
+                            </Collapsible>
+                        );
+                    })}
+                </div>
 
-            <Dialog
-                open={isImportDialogOpen}
-                onOpenChange={(open) => {
-                    setIsImportDialogOpen(open);
-                    if (!open) {
-                        resetImportState();
-                    }
-                }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Import configuration package</DialogTitle>
-                        <DialogDescription>
-                            Upload a {RUI_CONFIG_EXTENSION} file to prefill this list. Changes are local until you save.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className='space-y-4'>
-                        <FilepickerDropzone
-                            id='setup-config-file'
-                            accept={{
-                                'application/json': [RUI_CONFIG_EXTENSION, '.json'],
-                                'text/plain': [RUI_CONFIG_EXTENSION],
-                            }}
-                            labels={{
-                                upload: `Select a ${RUI_CONFIG_EXTENSION} file`,
-                                drag: 'or drag and drop it here',
-                            }}
-                            onChange={onImportFileChange}
-                        />
-                        {selectedImportFileName && (
-                            <p className='text-sm text-muted-foreground'>
-                                Selected file: {selectedImportFileName}
-                            </p>
-                        )}
-                        {importValidationError && (
-                            <div className='rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
-                                {importValidationError}
-                            </div>
-                        )}
-                        {importedPackage && (
-                            <div className='rounded-md border p-3 text-sm text-muted-foreground'>
-                                Valid package found for config <span className='font-medium text-foreground'>{importedPackage.config.name}</span>.
-                            </div>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant='outline' onClick={() => setIsImportDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={applyImportedPackage}
-                            disabled={importedPackage === undefined}
-                        >
-                            <Upload className='mr-2 size-4' />
-                            Use imported config
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                <Dialog
+                    open={isImportDialogOpen}
+                    onOpenChange={(open) => {
+                        setIsImportDialogOpen(open);
+                        if (!open) {
+                            resetImportState();
+                        }
+                    }}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Import configuration package</DialogTitle>
+                            <DialogDescription>
+                                Upload a {RUI_CONFIG_EXTENSION} file to prefill this list. Changes are local until you save.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className='space-y-4'>
+                            <FilepickerDropzone
+                                id='setup-config-file'
+                                accept={{
+                                    'application/json': [RUI_CONFIG_EXTENSION, '.json'],
+                                    'text/plain': [RUI_CONFIG_EXTENSION],
+                                }}
+                                labels={{
+                                    upload: `Select a ${RUI_CONFIG_EXTENSION} file`,
+                                    drag: 'or drag and drop it here',
+                                }}
+                                onChange={onImportFileChange}
+                            />
+                            {selectedImportFileName && (
+                                <p className='text-sm text-muted-foreground'>
+                                    Selected file: {selectedImportFileName}
+                                </p>
+                            )}
+                            {importValidationError && (
+                                <div className='rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+                                    {importValidationError}
+                                </div>
+                            )}
+                            {importedPackage && (
+                                <div className='rounded-md border p-3 text-sm text-muted-foreground'>
+                                    Valid package found for config <span className='font-medium text-foreground'>{importedPackage.config.name}</span>.
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant='outline' onClick={() => setIsImportDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={applyImportedPackage}
+                                disabled={importedPackage === undefined}
+                            >
+                                <Upload className='mr-2 size-4' />
+                                Use imported config
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
-            <div className='pointer-events-none sticky bottom-4 z-30 mt-4 w-full px-4'>
-                <div className='bg-primary/5 pointer-events-auto mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 p-3 shadow-lg backdrop-blur'>
-                    <p className='text-sm'>
-                        {!hasUnsavedChanges
-                            ? 'No unsaved changes.'
-                            : remainingRequiredCount === 0
-                                ? 'Ready to save.'
-                                : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's are' : ' is'} still incomplete.`}
-                    </p>
-                    <div className='flex flex-wrap items-center gap-2'>
-                        <Button variant='outline' onClick={handleExport}>
-                            <Download className='mr-2 size-4' />
-                            Export
-                        </Button>
-                        <Button variant='outline' onClick={() => setIsImportDialogOpen(true)}>
-                            <Upload className='mr-2 size-4' />
-                            Import
-                        </Button>
-                        <Button
-                            onClick={() => persistRecruitmentList(recruitmentList)}
-                            disabled={isPending || !hasUnsavedChanges}
-                            size='lg'
-                        >
-                            {isPending ? <Loader2 className='mr-2 size-4 animate-spin' /> : <Save className='mr-2 size-4' />}
-                            Save changes
-                        </Button>
+                <div className='pointer-events-none sticky bottom-4 z-30 mt-4 w-full px-4'>
+                    <div className='bg-primary/5 pointer-events-auto mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 p-3 shadow-lg backdrop-blur'>
+                        <p className='text-sm'>
+                            {!hasUnsavedChanges
+                                ? 'No unsaved changes.'
+                                : remainingRequiredCount === 0
+                                    ? 'Ready to save.'
+                                    : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's are' : ' is'} still incomplete.`}
+                        </p>
+                        <div className='flex flex-wrap items-center gap-2'>
+                            <Button variant='outline' onClick={handleExport}>
+                                <Download className='mr-2 size-4' />
+                                Export
+                            </Button>
+                            <Button variant='outline' onClick={() => setIsImportDialogOpen(true)}>
+                                <Upload className='mr-2 size-4' />
+                                Import
+                            </Button>
+                            <Button
+                                onClick={persistRecruitmentList}
+                                disabled={isPending || !hasUnsavedChanges}
+                                size='lg'
+                            >
+                                {isPending ? <Loader2 className='mr-2 size-4 animate-spin' /> : <Save className='mr-2 size-4' />}
+                                Save changes
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </FormProvider>
     );
 };
 
