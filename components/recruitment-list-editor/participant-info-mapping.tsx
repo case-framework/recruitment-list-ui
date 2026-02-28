@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Separator } from "../ui/separator";
 import { ParticipantInfo } from "@/lib/backend/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
@@ -60,10 +59,12 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                     </SelectContent>
                 </Select>
 
-                <Separator />
 
                 {infoDef.mappingType === 'key2value' && (
                     <>
+                        {infoDef.mapping?.length === 0 && (
+                            <p className="text-muted-foreground text-sm border border-dashed p-2 rounded-md border-border text-center">No key mapping added yet.</p>
+                        )}
                         {infoDef.mapping?.map((pair, index) => (
                             <div key={index} className="flex items-center space-x-2 w-fit">
                                 <Input
@@ -90,8 +91,8 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                                 </div>
                             </div>
                         ))}
-                        <Separator />
-                        <div className="flex items-center space-x-2">
+
+                        <div className="flex items-center space-x-2 border-t border-border pt-2">
                             <Input
                                 ref={refKey}
                                 value={newKey}
@@ -105,7 +106,10 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                                 placeholder="Value"
                                 className="w-1/3"
                             />
-                            <Button onClick={addPair}>Add</Button>
+                            <Button
+                                size='sm'
+                                variant='outline'
+                                onClick={addPair}><Plus className="h-4 w-4 mr-2" /> Add</Button>
                         </div>
                     </>
                 )}
