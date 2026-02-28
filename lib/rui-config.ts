@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { RecruitmentList, recruitmentListSchema } from "./backend/types";
 
-export const RUI_CONFIG_EXTENSION = ".rui-config";
+export const RUI_CONFIG_EXTENSION = ".crl";
 export const RUI_CONFIG_FORMAT = "rui-config";
 export const RUI_CONFIG_VERSION = 1;
 
@@ -38,6 +38,7 @@ const getPortableConfig = (recruitmentList: RecruitmentList): PortableRecruitmen
     const normalizedConfig = normalizeResearchDataDateValues({
         name: recruitmentList.name,
         description: recruitmentList.description,
+        tags: recruitmentList.tags,
         participantInclusion: recruitmentList.participantInclusion,
         exclusionConditions: recruitmentList.exclusionConditions,
         participantData: recruitmentList.participantData,
