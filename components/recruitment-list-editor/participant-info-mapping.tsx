@@ -15,6 +15,7 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
     const [newKey, setNewKey] = useState('')
     const [newValue, setNewValue] = useState('')
     const refKey = useRef<HTMLInputElement>(null)
+    const mapping = infoDef.mapping ?? []
 
     const addPair = () => {
         if (newKey && newValue) {
@@ -62,10 +63,10 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
 
                 {infoDef.mappingType === 'key2value' && (
                     <>
-                        {infoDef.mapping?.length === 0 && (
+                        {mapping.length === 0 && (
                             <p className="text-muted-foreground text-sm border border-dashed p-2 rounded-md border-border text-center">No key mapping added yet.</p>
                         )}
-                        {infoDef.mapping?.map((pair, index) => (
+                        {mapping.map((pair, index) => (
                             <div key={index} className="flex items-center space-x-2 w-fit">
                                 <Input
                                     value={pair.key} readOnly className="w-1/3" />
@@ -81,7 +82,7 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                                             <ChevronUp className="size-4" />
                                         </Button>
                                     )}
-                                    {index < (infoDef.mapping?.length || 0) - 1 && (
+                                    {index < mapping.length - 1 && (
                                         <Button size="icon"
                                             className="p-0 w-full grow"
                                             variant="ghost" onClick={() => movePair(index, index + 1)}>

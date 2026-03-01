@@ -100,7 +100,7 @@ const Inclusion = () => {
                                     onChange={(nextAutoConfig) => {
                                         form.setValue(
                                             'participantInclusion.autoConfig',
-                                            nextAutoConfig === undefined ? undefined : nextAutoConfig,
+                                            nextAutoConfig,
                                             {
                                                 shouldDirty: true,
                                                 shouldTouch: true,

@@ -21,7 +21,7 @@ const PconderzoekLogoCard: React.FC<PconderzoekLogoCardProps> = (props) => {
                             </span>
 
 
-                            <div className='min-w-[170px] w-[170px] py-4 order-1 sm:order-2'>
+                            <span className='min-w-[170px] w-[170px] py-4 order-1 sm:order-2'>
                                 <AspectRatio
                                     ratio={463 / 147}
                                 >
@@ -33,7 +33,7 @@ const PconderzoekLogoCard: React.FC<PconderzoekLogoCardProps> = (props) => {
                                         priority
                                     />
                                 </AspectRatio>
-                            </div>
+                            </span>
                         </h1>
                         <p className="text-muted-foreground mt-1">Study tools for data access and contact management. </p>
                     </Link>

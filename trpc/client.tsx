@@ -37,11 +37,6 @@ export function TRPCReactProvider(
   //       suspend because React will throw away the client on the initial
   //       render if it suspends and there is no boundary
   const queryClient = getQueryClient();
-  queryClient.setDefaultOptions({
-    queries: {
-      retry: false,
-    },
-  });
 
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
