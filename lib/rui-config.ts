@@ -16,7 +16,7 @@ export type PortableRecruitmentListConfig = z.infer<typeof portableRecruitmentLi
 export const ruiConfigMetadataSchema = z.object({
     format: z.literal(RUI_CONFIG_FORMAT),
     version: z.literal(RUI_CONFIG_VERSION),
-    exportedAt: z.string().datetime(),
+    exportedAt: z.iso.datetime(),
     source: z.object({
         recruitmentListId: z.string().optional(),
         recruitmentListName: z.string().optional(),
