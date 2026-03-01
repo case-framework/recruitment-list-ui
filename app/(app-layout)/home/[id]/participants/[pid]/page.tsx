@@ -47,7 +47,7 @@ export default async function Page(props: PageProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden p-0">
                         <ParticipantInfos
                             infoKeys={recruitmentList.participantData.participantInfos.map((info: ParticipantInfo) => info.label)}
                             participant={participant}
@@ -59,7 +59,7 @@ export default async function Page(props: PageProps) {
                 </div>
 
                 <div>
-                    <Card>
+                    <Card className="p-0">
                         <Notes
                             recruitmentListId={id}
                             pid={participant.id}

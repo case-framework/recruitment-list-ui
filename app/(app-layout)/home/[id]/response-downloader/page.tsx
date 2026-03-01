@@ -30,7 +30,7 @@ export default async function Page(props: PageProps) {
         <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-6">
                 <div>
-                    <Card className="">
+                    <Card className="p-0">
                         <CardHeader className="p-4">
                             <h3 className="font-bold">Data downloader</h3>
                             <p className="text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ export default async function Page(props: PageProps) {
                 </div>
 
                 <div>
-                    <Card className="bg-neutral-50">
+                    <Card className="bg-neutral-50 p-0">
                         <CardHeader className="p-4">
                             <h3
                                 className="font-bold flex items-center gap-2"
