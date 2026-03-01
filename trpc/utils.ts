@@ -30,3 +30,11 @@ export const recruitmentListManagementErrorMessages = {
   createPlaceholderRecruitmentList: 'could not create recruitment list',
   updateRecruitmentListTags: 'could not update recruitment list tags',
 } as const;
+
+export const userManagementErrorMessages = {
+  getUsers: 'could not get users',
+  getUserDetails: 'could not get user details',
+  getPermissions: 'could not get user permissions',
+  getRecruitmentLists: 'could not get recruitment lists',
+  forbidden: 'you are not allowed to access user management',
+} as const;
