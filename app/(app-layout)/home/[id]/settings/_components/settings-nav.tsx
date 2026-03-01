@@ -30,15 +30,20 @@ export default function SettingsNav({
             <h2 className="text-lg font-bold px-4 mb-2 pt-4">Settings</h2>
             <div className="space-y-2 pb-4">
                 {navItems.map((item) => (
-                    <Link key={item.href} href={item.href}>
-                        <Button
-                            variant={pathname === item.href ? "secondary" : "ghost"}
-                            className="w-full justify-start"
+                    <Button
+                        variant={pathname === item.href ? "secondary" : "ghost"}
+                        className="w-full justify-start"
+                        key={item.href}
+                        asChild
+                    >
+                        <Link
+                            href={item.href}
                         >
                             <item.icon className="mr-2 h-4 w-4" />
                             {item.label}
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
+
                 ))}
             </div>
         </nav>

@@ -106,6 +106,10 @@ const StudyActionEditor: React.FC<StudyActionEditorProps> = ({ action, open, isL
                                     }));
                                 } catch {
                                     setErrorMsg('Invalid JSON file');
+                                    setCurrentAction(prev => ({
+                                        ...prev,
+                                        encodedAction: ''
+                                    }));
                                     return;
                                 }
                             } else {
