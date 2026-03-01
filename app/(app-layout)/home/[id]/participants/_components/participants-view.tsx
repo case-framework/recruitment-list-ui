@@ -14,6 +14,7 @@ import { useCopyToClipboard } from 'usehooks-ts';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useScrollStore } from '@/lib/stores/scroll-store';
+import { parseParticipantInfoFiltersFromEntries } from '@/lib/participants/filter-utils';
 
 interface ParticipantsViewProps {
     recruitmentListId: string
@@ -77,15 +78,18 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = (props) => {
         }
         if (paginationInfo === undefined || (paginationInfo.currentPage !== page && props.participantsPage.pagination.totalPages >= page)) {
             const fetchParticipants = async () => {
+                const infoFilters = parseParticipantInfoFiltersFromEntries(searchParams);
                 const hasFilters = searchParams.get('participantId') ||
                     searchParams.get('recruitmentStatus') ||
                     searchParams.get('includedSince') ||
-                    searchParams.get('includedUntil');
+                    searchParams.get('includedUntil') ||
+                    Object.keys(infoFilters).length > 0;
                 const pFilters = hasFilters ? {
                     participantId: searchParams.get('participantId'),
                     recruitmentStatus: searchParams.get('recruitmentStatus'),
                     includedSince: searchParams.get('includedSince'),
                     includedUntil: searchParams.get('includedUntil'),
+                    infos: infoFilters,
                 } : undefined;
                 setLoading(true)
                 const resp = await getParticipants(props.recruitmentListId, page, pFilters, searchParams.get('sortBy') || undefined, searchParams.get('sortDir') || undefined);

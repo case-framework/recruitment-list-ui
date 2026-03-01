@@ -6,8 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { ParticipantFilters } from '@/lib/backend/participants';
+import { areParticipantInfoFiltersEqual, parseParticipantInfoFiltersFromEntries, replaceParticipantInfoFiltersInQuery } from '@/lib/participants/filter-utils';
 import { format } from 'date-fns';
-import { CalendarIcon, FilterIcon } from 'lucide-react';
+import { CalendarIcon, FilterIcon, PlusIcon, XIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useEffectEvent, useState } from 'react';
 
@@ -15,9 +16,38 @@ interface FilterEditorProps {
     statusValues: string[]
 }
 
+interface InfoFilterRow {
+    id: string
+    key: string
+    value: string
+}
+
 // Format a date for display
 const formatDateForDisplay = (date: Date) => {
     return date ? format(date, 'yyyy-MM-dd') : ""
+}
+
+const createInfoFilterRow = (key = '', value = ''): InfoFilterRow => {
+    return {
+        id: `${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36)}`,
+        key,
+        value,
+    }
+}
+
+const mapInfoFilterRowsToRecord = (rows: InfoFilterRow[]) => {
+    const infoFilters: Record<string, string> = {}
+    for (const row of rows) {
+        const key = row.key.trim()
+        const value = row.value
+        if (!key || !value.trim()) {
+            continue
+        }
+
+        infoFilters[key] = value
+    }
+
+    return infoFilters
 }
 
 const FilterEditor: React.FC<FilterEditorProps> = (props) => {
@@ -31,15 +61,20 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
         recruitmentStatus: null,
         includedSince: null,
         includedUntil: null,
+        infos: {},
     })
+    const [currentInfoFilters, setCurrentInfoFilters] = useState<InfoFilterRow[]>([])
 
     const onSetCurrentFilters = useEffectEvent(() => {
+        const infoFilters = parseParticipantInfoFiltersFromEntries(searchParams)
         setCurrentFilters({
             participantId: searchParams.get('participantId') || null,
             recruitmentStatus: searchParams.get('recruitmentStatus') || null,
             includedSince: searchParams.get('includedSince') || null,
             includedUntil: searchParams.get('includedUntil') || null,
+            infos: infoFilters,
         })
+        setCurrentInfoFilters(Object.entries(infoFilters).map(([key, value]) => createInfoFilterRow(key, value)))
     })
 
 
@@ -48,21 +83,24 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
     }, [open])
 
     const hasChanges = () => {
+        const searchParamInfos = parseParticipantInfoFiltersFromEntries(searchParams)
         return currentFilters.participantId !== searchParams.get('participantId') ||
             currentFilters.recruitmentStatus !== searchParams.get('recruitmentStatus') ||
             currentFilters.includedSince !== searchParams.get('includedSince') ||
-            currentFilters.includedUntil !== searchParams.get('includedUntil')
+            currentFilters.includedUntil !== searchParams.get('includedUntil') ||
+            !areParticipantInfoFiltersEqual(mapInfoFilterRowsToRecord(currentInfoFilters), searchParamInfos)
     }
 
     const hasFilters = () => {
         return searchParams.get('participantId') !== null ||
             searchParams.get('recruitmentStatus') !== null ||
             searchParams.get('includedSince') !== null ||
-            searchParams.get('includedUntil') !== null
+            searchParams.get('includedUntil') !== null ||
+            Object.keys(parseParticipantInfoFiltersFromEntries(searchParams)).length > 0
     }
 
     const createQueryString = useCallback(
-        (filters: ParticipantFilters) => {
+        (filters: ParticipantFilters, infoFilters: InfoFilterRow[]) => {
             const params = new URLSearchParams(searchParams.toString())
             if (filters.participantId !== null) {
                 params.set('participantId', filters.participantId)
@@ -84,6 +122,8 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
             } else {
                 params.delete('includedUntil')
             }
+
+            replaceParticipantInfoFiltersInQuery(params, mapInfoFilterRowsToRecord(infoFilters))
             return params.toString()
         },
         [searchParams]
@@ -234,6 +274,68 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
 
                     <Separator />
 
+                    <div className='space-y-2'>
+                        <div className='flex items-center justify-between'>
+                            <FieldLabel>Info filters</FieldLabel>
+                            <Button
+                                variant='outline'
+                                size='sm'
+                                onClick={() => setCurrentInfoFilters([...currentInfoFilters, createInfoFilterRow()])}
+                            >
+                                <PlusIcon className='size-3' />
+                                Add info filter
+                            </Button>
+                        </div>
+
+                        {currentInfoFilters.length === 0 && (
+                            <p className='text-xs text-muted-foreground'>
+                                No info filters added yet.
+                            </p>
+                        )}
+
+                        {currentInfoFilters.map(infoFilter => (
+                            <div
+                                key={infoFilter.id}
+                                className='grid grid-cols-[1fr_1fr_auto] items-center gap-2'
+                            >
+                                <Input
+                                    value={infoFilter.key}
+                                    className='font-mono text-xs'
+                                    placeholder='Info key'
+                                    onChange={(e) => {
+                                        setCurrentInfoFilters(currentInfoFilters.map(row => row.id === infoFilter.id ? {
+                                            ...row,
+                                            key: e.target.value,
+                                        } : row))
+                                    }}
+                                />
+                                <Input
+                                    value={infoFilter.value}
+                                    className='font-mono text-xs'
+                                    placeholder='Value'
+                                    onChange={(e) => {
+                                        setCurrentInfoFilters(currentInfoFilters.map(row => row.id === infoFilter.id ? {
+                                            ...row,
+                                            value: e.target.value,
+                                        } : row))
+                                    }}
+                                />
+                                <Button
+                                    size='icon'
+                                    variant='ghost'
+                                    className='size-8'
+                                    onClick={() => {
+                                        setCurrentInfoFilters(currentInfoFilters.filter(row => row.id !== infoFilter.id))
+                                    }}
+                                >
+                                    <XIcon className='size-3.5 text-muted-foreground' />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <Separator />
+
                     <div className='flex items-center justify-end gap-2'>
                         <Button
                             variant={'outline'}
@@ -243,8 +345,9 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                     recruitmentStatus: null,
                                     includedSince: null,
                                     includedUntil: null,
+                                    infos: {},
                                 }
-                                router.push(pathname + '?' + createQueryString(newFilters))
+                                router.push(pathname + '?' + createQueryString(newFilters, []))
                                 setOpen(false)
                             }}
                             disabled={!hasFilters()}
@@ -255,7 +358,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                         <Button
                             disabled={!hasChanges()}
                             onClick={() => {
-                                router.push(pathname + '?' + createQueryString(currentFilters))
+                                router.push(pathname + '?' + createQueryString(currentFilters, currentInfoFilters))
                                 setOpen(false)
                             }}
                         >

@@ -2,36 +2,46 @@ import { getRecruitmentList } from "@/lib/backend/recruitmentLists";
 import ParticipantsView from "./_components/participants-view";
 import { getParticipants } from "@/lib/backend/participants";
 import { redirect } from "next/navigation";
+import { parseParticipantInfoFiltersFromObject } from "@/lib/participants/filter-utils";
 
 
 interface PageProps {
     params: Promise<{
         id: string;
     }>;
-    searchParams: Promise<{
-        // sort attributes
-        sortBy?: string;
-        sortDir?: string;
-        // filter attributes
-        participantId?: string;
-        recruitmentStatus?: string;
-        includedSince?: string;
-        includedUntil?: string;
-    }>;
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+const normalizeSearchParamValue = (value: string | string[] | undefined) => {
+    if (Array.isArray(value)) {
+        return value[0];
+    }
+
+    return value;
 }
 
 export default async function Page(props: PageProps) {
     const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
-    const hasFilters = searchParams.participantId ||
-        searchParams.recruitmentStatus ||
-        searchParams.includedSince ||
-        searchParams.includedUntil;
+    const participantId = normalizeSearchParamValue(searchParams.participantId) || null;
+    const recruitmentStatus = normalizeSearchParamValue(searchParams.recruitmentStatus) || null;
+    const includedSince = normalizeSearchParamValue(searchParams.includedSince) || null;
+    const includedUntil = normalizeSearchParamValue(searchParams.includedUntil) || null;
+    const sortBy = normalizeSearchParamValue(searchParams.sortBy);
+    const sortDir = normalizeSearchParamValue(searchParams.sortDir);
+    const infoFilters = parseParticipantInfoFiltersFromObject(searchParams);
+
+    const hasFilters = participantId ||
+        recruitmentStatus ||
+        includedSince ||
+        includedUntil ||
+        Object.keys(infoFilters).length > 0;
 
     const pFilters = hasFilters ? {
-        participantId: searchParams.participantId || null,
-        recruitmentStatus: searchParams.recruitmentStatus || null,
-        includedSince: searchParams.includedSince || null,
-        includedUntil: searchParams.includedUntil || null,
+        participantId,
+        recruitmentStatus,
+        includedSince,
+        includedUntil,
+        infos: infoFilters,
     } : undefined;
 
 
@@ -40,7 +50,7 @@ export default async function Page(props: PageProps) {
         participantsPage,
     ] = await Promise.all([
         getRecruitmentList(params.id),
-        getParticipants(params.id, 1, pFilters, searchParams.sortBy || undefined, searchParams.sortDir || undefined),
+        getParticipants(params.id, 1, pFilters, sortBy || undefined, sortDir || undefined),
     ]);
 
     if (recruitmentList.error !== undefined) {
