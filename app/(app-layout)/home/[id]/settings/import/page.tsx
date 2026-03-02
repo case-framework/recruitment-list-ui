@@ -1,18 +1,19 @@
 import ParticipantInviter from "./_components/participant-inviter";
 
 interface PageParams {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }
 
 
-export default function Page(props: PageParams) {
+export default async function Page(props: PageParams) {
+    const { id } = await props.params;
 
     return (
         <div>
             <ParticipantInviter
-                recruitmentListId={props.params.id}
+                recruitmentListId={id}
             />
         </div>
     );

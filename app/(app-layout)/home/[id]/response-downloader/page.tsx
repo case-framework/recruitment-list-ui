@@ -7,19 +7,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ParticipantInfoDownloader from "./_components/participant-info-downloader";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default async function Page(props: PageProps) {
+    const { id } = await props.params;
 
     const [
         responseInfosResp,
         downloadsResp
     ] = await Promise.all([
-        getAvailableResearchDataInfos(props.params.id),
-        getDownloads(props.params.id),
+        getAvailableResearchDataInfos(id),
+        getDownloads(id),
     ])
 
     const responseInfos = responseInfosResp?.infos || [];
@@ -29,7 +30,7 @@ export default async function Page(props: PageProps) {
         <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-6">
                 <div>
-                    <Card className="">
+                    <Card className="p-0">
                         <CardHeader className="p-4">
                             <h3 className="font-bold">Data downloader</h3>
                             <p className="text-sm text-muted-foreground">
@@ -38,22 +39,28 @@ export default async function Page(props: PageProps) {
                         </CardHeader>
                         <CardContent className="p-4 pt-0">
 
-                            <Tabs defaultValue="research-data">
-                                <TabsList>
+                            <Tabs
+                                defaultValue="research-data"
+                            >
+                                <TabsList
+
+                                >
                                     <TabsTrigger value="research-data">Research data</TabsTrigger>
                                     <TabsTrigger value="participant-infos">Participant infos</TabsTrigger>
                                 </TabsList>
-                                <TabsContent value="participant-infos">
-                                    <ParticipantInfoDownloader
-                                        recruitmentListId={props.params.id}
-                                    />
-                                </TabsContent>
-                                <TabsContent value="research-data">
-                                    <ResponseDownloader
-                                        recruitmentListId={props.params.id}
-                                        responseInfos={responseInfos}
-                                    />
-                                </TabsContent>
+                                <div>
+                                    <TabsContent value="participant-infos">
+                                        <ParticipantInfoDownloader
+                                            recruitmentListId={id}
+                                        />
+                                    </TabsContent>
+                                    <TabsContent value="research-data">
+                                        <ResponseDownloader
+                                            recruitmentListId={id}
+                                            responseInfos={responseInfos}
+                                        />
+                                    </TabsContent>
+                                </div>
                             </Tabs>
 
                         </CardContent>
@@ -61,7 +68,7 @@ export default async function Page(props: PageProps) {
                 </div>
 
                 <div>
-                    <Card className="bg-neutral-50">
+                    <Card className="bg-neutral-50 p-0">
                         <CardHeader className="p-4">
                             <h3
                                 className="font-bold flex items-center gap-2"
@@ -74,7 +81,7 @@ export default async function Page(props: PageProps) {
                         </CardHeader>
                         <CardContent className="p-4">
                             <DownloadViewer
-                                recruitmentListId={props.params.id}
+                                recruitmentListId={id}
                                 downloadInfos={downloads}
                             />
                         </CardContent>

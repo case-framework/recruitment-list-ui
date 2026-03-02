@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '../ui/card';
 import { AutoConfig } from '@/lib/backend/types';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
+import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from '../ui/field';
 import { ConfirmDialog } from '../confirm-dialog';
 import DateRangeSelector from '../ui/date-range-selector';
 import { DateRange } from 'react-day-picker';
@@ -27,31 +28,40 @@ const InclusionCriteriaEditor: React.FC<InclusionCriteriaEditorProps> = (props) 
     }
 
     return (
-        <Card>
+        <Card className='bg-neutral-100'>
             <CardHeader>
                 <h4 className='text-lg font-medium'>Which participants should be included?</h4>
                 <p className='text-muted-foreground text-sm'>The inclusion job will run periodically and include participants based on the criteria you define here.</p>
             </CardHeader>
 
             <CardContent className='space-y-8'>
-                <Label className='flex items-center gap-2 cursor-pointer'>
-                    <Switch
-                        checked={!hasAutoConfig}
-                        onCheckedChange={(checked) => {
-                            if (!checked) {
-                                props.onChange({
-                                    criteria: undefined,
-                                    startDate: undefined,
-                                    endDate: undefined,
-                                })
-                            } else {
-                                setRemoveCriteriaDialogOpen(true);
-                            }
-                        }}
-                    />
-
-                    Include all participants <span className='font-normal text-xs'>(unconditionally include new participants)</span>
-                </Label>
+                <FieldLabel htmlFor="include-all-participants"
+                    className='bg-background'
+                >
+                    <Field orientation="horizontal">
+                        <FieldContent>
+                            <FieldTitle>Include all participants</FieldTitle>
+                            <FieldDescription>
+                                Unconditionally include new participants
+                            </FieldDescription>
+                        </FieldContent>
+                        <Switch
+                            id="include-all-participants"
+                            checked={!hasAutoConfig}
+                            onCheckedChange={(checked) => {
+                                if (!checked) {
+                                    props.onChange({
+                                        criteria: undefined,
+                                        startDate: undefined,
+                                        endDate: undefined,
+                                    })
+                                } else {
+                                    setRemoveCriteriaDialogOpen(true);
+                                }
+                            }}
+                        />
+                    </Field>
+                </FieldLabel>
 
                 {hasAutoConfig && <div className='flex flex-col gap-1.5'>
                     <Label>

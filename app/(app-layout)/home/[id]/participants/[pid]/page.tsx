@@ -9,13 +9,14 @@ import { getCurrentUserPermissions } from "@/lib/backend/permissions";
 import BackButton from "@/components/back-button";
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
         pid: string;
-    };
+    }>;
 }
 
 export default async function Page(props: PageProps) {
+    const { id, pid } = await props.params;
     const session = await auth();
     const [
         recruitmentList,
@@ -23,9 +24,9 @@ export default async function Page(props: PageProps) {
         notesResp,
         permissionResp
     ] = await Promise.all([
-        getRecruitmentList(props.params.id),
-        getParticipant(props.params.id, props.params.pid),
-        getParticipantNotes(props.params.id, props.params.pid),
+        getRecruitmentList(id),
+        getParticipant(id, pid),
+        getParticipantNotes(id, pid),
         getCurrentUserPermissions(),
     ]);
 
@@ -46,21 +47,21 @@ export default async function Page(props: PageProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden p-0">
                         <ParticipantInfos
                             infoKeys={recruitmentList.participantData.participantInfos.map((info: ParticipantInfo) => info.label)}
                             participant={participant}
                             statusValues={recruitmentList.customization?.recruitmentStatusValues || []}
-                            recruitmentListId={props.params.id}
+                            recruitmentListId={id}
                             studyActions={recruitmentList.studyActions || []}
                         />
                     </Card>
                 </div>
 
                 <div>
-                    <Card>
+                    <Card className="p-0">
                         <Notes
-                            recruitmentListId={props.params.id}
+                            recruitmentListId={id}
                             pid={participant.id}
                             notes={noteInfos}
                         />

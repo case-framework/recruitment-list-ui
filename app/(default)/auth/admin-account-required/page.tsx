@@ -1,7 +1,7 @@
 'use client';
 
 import { logout } from "@/actions/auth/logout";
-import LoadingButton from "@/components/loading-button";
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";

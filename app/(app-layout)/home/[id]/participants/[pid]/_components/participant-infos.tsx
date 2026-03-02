@@ -60,7 +60,7 @@ const ParticipantInfos: React.FC<ParticipantInfosProps> = (props) => {
                 return;
             }
             toast.success('Study action executed successfully');
-        } catch (error) {
+        } catch {
             toast.error('Could not execute study action');
         } finally {
             setActionPopoverOpen(false);

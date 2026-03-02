@@ -118,7 +118,7 @@ export const {
                     return token
                 }
                 return token
-            } else if (token.renewSessionAt !== undefined && Date.now() > token.renewSessionAt * 1000) {
+            } else if (typeof token.renewSessionAt === 'number' && Date.now() > token.renewSessionAt * 1000) {
                 if (token.provider === 'oidc-provider') {
 
                     if (process.env.DISABLE_TOKEN_REFRESH === 'true') {
@@ -130,17 +130,19 @@ export const {
                     }
                     console.log('refreshing token');
 
-                    if (!token.CASEaccessToken || !token.CASESessionID) {
+                    if (typeof token.CASEaccessToken !== 'string' || typeof token.CASESessionID !== 'string') {
                         console.error('No token or session id found')
                         return {
                             ...token,
                             error: 'RefreshAccessTokenError' as const,
                         }
                     }
+                    const CASEaccessToken = token.CASEaccessToken;
+                    const CASESessionID = token.CASESessionID;
 
                     // get refresh token from CASE session
                     try {
-                        const resp = await getRenewTokenRequest(token.CASEaccessToken, token.CASESessionID)
+                        const resp = await getRenewTokenRequest(CASEaccessToken, CASESessionID)
 
                         if (!resp.renewToken) {
                             return token;
@@ -159,7 +161,7 @@ export const {
                         }
 
                         // get new JWT from CASE backend
-                        const newTokenResp = await extendSessionRequest(token.CASEaccessToken, newRenewToken);
+                        const newTokenResp = await extendSessionRequest(CASEaccessToken, newRenewToken);
                         token.CASEaccessToken = newTokenResp.accessToken;
                         token.CASESessionID = newTokenResp.sessionID;
                         token.expiresAt = newTokenResp.expiresAt;
@@ -177,9 +179,9 @@ export const {
             return token
         },
         async session({ session, token }) {
-            session.CASEaccessToken = token.CASEaccessToken;
-            session.tokenExpiresAt = token.expiresAt;
-            session.isAdmin = token.isAdmin;
+            session.CASEaccessToken = typeof token.CASEaccessToken === 'string' ? token.CASEaccessToken : undefined;
+            session.tokenExpiresAt = typeof token.expiresAt === 'number' ? token.expiresAt : undefined;
+            session.isAdmin = typeof token.isAdmin === 'boolean' ? token.isAdmin : undefined;
             return session
         }
     },
@@ -203,17 +205,4 @@ declare module "next-auth" {
         tokenExpiresAt?: number;
     }
 
-}
-
-declare module "@auth/core/jwt" {
-    /** Returned by the `jwt` callback and `auth`, when using JWT sessions */
-    interface JWT {
-        provider?: string
-        CASEaccessToken?: string
-        CASESessionID?: string
-        expiresAt?: number
-        renewSessionAt?: number
-        isAdmin?: boolean
-        error?: "RefreshAccessTokenError" | "LoginFailed"
-    }
 }

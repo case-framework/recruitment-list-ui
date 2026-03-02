@@ -34,7 +34,9 @@ const SortEditor: React.FC = () => {
                     Sort
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
+            <DropdownMenuContent
+                className='w-48'
+                align='end'>
                 <DropdownMenuLabel>
                     Sort by
                 </DropdownMenuLabel>

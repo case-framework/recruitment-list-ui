@@ -91,8 +91,9 @@ const InclusionCriteriaConditionEditor: React.FC<InclusionCriteriaConditionEdito
                         )}
                         <Button
                             type='button'
+                            size='icon-sm'
                             className='group-hover:flex hidden'
-                            variant="ghost" size="icon" onClick={() => removeItem(group, index)}>
+                            variant="ghost" onClick={() => removeItem(group, index)}>
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
@@ -200,9 +201,9 @@ const InclusionCriteriaConditionEditor: React.FC<InclusionCriteriaConditionEdito
     }
 
     return (
-        <>
+        <div className='bg-background rounded-md p-2 border border-border'>
             {renderGroup(rootGroup)}
-        </>
+        </div>
     );
 };
 

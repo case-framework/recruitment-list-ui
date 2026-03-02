@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppBackground from "@/components/app-background";
 import { cn } from "@/lib/utils";
+import { ConfirmDialogProvider } from "@/components/c-ui/confirm-provider";
+import { TRPCReactProvider } from "@/trpc/client";
+import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 
 export async function generateMetadata(): Promise<Metadata> {
 
@@ -28,11 +40,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cn(
-        inter.className,
+        geistSans.variable,
+        geistMono.variable,
         'h-screen flex flex-col antialiased'
       )}>
         <AppBackground />
-        {children}
+        <TRPCReactProvider>
+          <ConfirmDialogProvider>
+            {children}
+            <Toaster />
+          </ConfirmDialogProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

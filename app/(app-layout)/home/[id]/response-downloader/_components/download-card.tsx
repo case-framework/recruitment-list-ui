@@ -1,6 +1,6 @@
 'use client'
 
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { Card } from '@/components/ui/card';
 import { Download } from '@/lib/backend/types';
 import { format } from 'date-fns';

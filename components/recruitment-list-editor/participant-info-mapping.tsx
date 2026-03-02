@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Separator } from "../ui/separator";
 import { ParticipantInfo } from "@/lib/backend/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
@@ -16,6 +15,7 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
     const [newKey, setNewKey] = useState('')
     const [newValue, setNewValue] = useState('')
     const refKey = useRef<HTMLInputElement>(null)
+    const mapping = infoDef.mapping ?? []
 
     const addPair = () => {
         if (newKey && newValue) {
@@ -60,11 +60,13 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                     </SelectContent>
                 </Select>
 
-                <Separator />
 
                 {infoDef.mappingType === 'key2value' && (
                     <>
-                        {infoDef.mapping?.map((pair, index) => (
+                        {mapping.length === 0 && (
+                            <p className="text-muted-foreground text-sm border border-dashed p-2 rounded-md border-border text-center">No key mapping added yet.</p>
+                        )}
+                        {mapping.map((pair, index) => (
                             <div key={index} className="flex items-center space-x-2 w-fit">
                                 <Input
                                     value={pair.key} readOnly className="w-1/3" />
@@ -80,7 +82,7 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                                             <ChevronUp className="size-4" />
                                         </Button>
                                     )}
-                                    {index < (infoDef.mapping?.length || 0) - 1 && (
+                                    {index < mapping.length - 1 && (
                                         <Button size="icon"
                                             className="p-0 w-full grow"
                                             variant="ghost" onClick={() => movePair(index, index + 1)}>
@@ -90,8 +92,8 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                                 </div>
                             </div>
                         ))}
-                        <Separator />
-                        <div className="flex items-center space-x-2">
+
+                        <div className="flex items-center space-x-2 border-t border-border pt-2">
                             <Input
                                 ref={refKey}
                                 value={newKey}
@@ -105,7 +107,10 @@ function ParticipantInfoMappingEditor({ infoDef, onChange }: MappingEditorProps)
                                 placeholder="Value"
                                 className="w-1/3"
                             />
-                            <Button onClick={addPair}>Add</Button>
+                            <Button
+                                size='sm'
+                                variant='outline'
+                                onClick={addPair}><Plus className="h-4 w-4 mr-2" /> Add</Button>
                         </div>
                     </>
                 )}

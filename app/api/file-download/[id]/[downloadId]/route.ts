@@ -7,9 +7,8 @@ type Params = {
     downloadId: string;
 };
 
-export async function GET(request: Request, context: { params: Params }) {
-    const recruitmentListId = context.params.id;
-    const downloadId = context.params.downloadId;
+export async function GET(request: Request, context: { params: Promise<Params> }) {
+    const { id: recruitmentListId, downloadId } = await context.params;
 
     const session = await auth();
     if (!session || !session.CASEaccessToken) {

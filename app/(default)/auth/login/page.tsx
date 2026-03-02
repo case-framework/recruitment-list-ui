@@ -7,13 +7,14 @@ import { redirect } from "next/navigation";
 export default async function Page({
     searchParams
 }: {
-    searchParams: {
+    searchParams: Promise<{
         redirectTo?: string;
-    };
+    }>;
 }) {
+    const resolvedSearchParams = await searchParams;
     const session = await auth();
     if (session && session.user) {
-        let redirectTo = searchParams.redirectTo || '/';
+        let redirectTo = resolvedSearchParams.redirectTo || '/';
         if (redirectTo.startsWith('http')) {
             redirectTo = '/home';
         }

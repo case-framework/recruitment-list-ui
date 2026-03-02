@@ -1,218 +1,789 @@
 'use client'
 
-import React, { useState } from 'react';
-import { z } from "zod"
+import React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-
-import { RecruitmentList, recruitmentListSchema } from '@/lib/backend/types';
-import { createRecruitmentList, updateRecruitmentList } from '@/lib/backend/recruitmentLists';
+import {
+    ChevronDown,
+    CircleAlert,
+    CircleCheck,
+    CircleDotDashed,
+    Database,
+    Download,
+    FileText,
+    Filter,
+    Loader2,
+    Save,
+    SlidersHorizontal,
+    Upload,
+    X,
+} from 'lucide-react';
+import { FileWithPath } from 'react-dropzone';
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import General from './general';
+
+import {
+    RecruitmentList,
+    participantInclusionSchema,
+    recruitmentListInfoSchema,
+    recruitmentListSchema,
+} from '@/lib/backend/types';
+import {
+    createRecruitmentList,
+    updateRecruitmentList,
+    updateRecruitmentListTags,
+} from '@/lib/backend/recruitmentLists';
+import {
+    createRuiConfigPackage,
+    parseRuiConfigPackage,
+    RUI_CONFIG_EXTENSION,
+    RuiConfigPackage,
+} from '@/lib/rui-config';
 import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { Label } from '../ui/label';
+import { FilepickerDropzone } from '../c-ui/filepicker-dropzone';
+import General from './general';
 import Inclusion from './inclusion';
 import ExclusionEditor from './exclusion';
 import DataSources from './data-sources';
 import Customisations from './customisations';
+import TagEditorCompact from '../tag-editor-compact';
 
 interface RecruitmentListEditorProps {
     recruitmentList?: RecruitmentList;
+    availableTags?: string[];
+    initialTags?: string[];
 }
 
-const steps = ['general', 'inclusion', 'data', 'exclusion', 'customization']
+type SectionName = 'general' | 'inclusion' | 'exclusion' | 'data' | 'customization';
+
+type SectionProgress = {
+    section: SectionName;
+    label: string;
+    helperText: string;
+    isRequired: boolean;
+    isComplete: boolean;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    iconClassName: string;
+};
+
+type SectionIssue = {
+    path: string;
+    message: string;
+};
+
+const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+const UNCONFIGURED_STUDY_KEY = '__not_configured__';
+
+const normalizeTags = (rawTags: unknown): string[] => {
+    if (!Array.isArray(rawTags)) {
+        return [];
+    }
+
+    const cleanedTags = rawTags
+        .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+        .filter((tag): tag is string => tag.length > 0);
+
+    return Array.from(new Set(cleanedTags)).sort((a, b) => collator.compare(a, b));
+};
+
+const areTagsEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) {
+        return false;
+    }
+
+    return a.every((tag, index) => tag === b[index]);
+};
+
+const createDefaultRecruitmentList = (): RecruitmentList => ({
+    id: undefined,
+    name: '',
+    description: '',
+    participantInclusion: {
+        studyKey: '',
+        type: 'manual',
+        autoConfig: undefined,
+        notificationEmails: [],
+    },
+    participantData: {
+        participantInfos: [],
+        researchData: [],
+    },
+    customization: {
+        recruitmentStatusValues: [],
+    },
+    exclusionConditions: [],
+    studyActions: [],
+    tags: [],
+});
+
+const normalizeRecruitmentListForForm = (recruitmentList: RecruitmentList, rawTags?: unknown): RecruitmentList => {
+    const defaults = createDefaultRecruitmentList();
+
+    return {
+        ...defaults,
+        ...recruitmentList,
+        name: recruitmentList.name ?? '',
+        description: recruitmentList.description ?? '',
+        tags: normalizeTags(rawTags ?? recruitmentList.tags),
+        participantInclusion: {
+            ...defaults.participantInclusion,
+            ...recruitmentList.participantInclusion,
+            notificationEmails: recruitmentList.participantInclusion?.notificationEmails ?? [],
+        },
+        exclusionConditions: recruitmentList.exclusionConditions ?? [],
+        participantData: {
+            participantInfos: recruitmentList.participantData?.participantInfos ?? [],
+            researchData: recruitmentList.participantData?.researchData ?? [],
+        },
+        customization: {
+            recruitmentStatusValues: recruitmentList.customization?.recruitmentStatusValues ?? [],
+        },
+        studyActions: recruitmentList.studyActions ?? [],
+    };
+};
+
+const normalizeRecruitmentListForComparison = (recruitmentList: RecruitmentList) => ({
+    id: recruitmentList.id,
+    name: recruitmentList.name,
+    description: recruitmentList.description,
+    participantInclusion: {
+        ...recruitmentList.participantInclusion,
+        notificationEmails: recruitmentList.participantInclusion.notificationEmails ?? [],
+    },
+    exclusionConditions: recruitmentList.exclusionConditions ?? [],
+    participantData: recruitmentList.participantData,
+    customization: {
+        ...recruitmentList.customization,
+        recruitmentStatusValues: recruitmentList.customization.recruitmentStatusValues ?? [],
+    },
+    studyActions: recruitmentList.studyActions ?? [],
+});
+
+const areRecruitmentListsEqual = (a: RecruitmentList, b: RecruitmentList) => (
+    JSON.stringify(normalizeRecruitmentListForComparison(a))
+    === JSON.stringify(normalizeRecruitmentListForComparison(b))
+);
+
+const sanitizeFileName = (rawName: string) => {
+    const normalizedName = rawName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return normalizedName.length > 0 ? normalizedName : 'recruitment-list';
+};
+
+const getSectionForIssuePath = (path: PropertyKey[]): SectionName | undefined => {
+    const topLevelField = String(path[0] || '');
+    const sectionByField: Record<string, SectionName> = {
+        name: 'general',
+        description: 'general',
+        tags: 'general',
+        participantInclusion: 'inclusion',
+        participantData: 'data',
+        exclusionConditions: 'exclusion',
+        customization: 'customization',
+    };
+
+    return sectionByField[topLevelField];
+};
+
+const formatIssuePathForSection = (section: SectionName, path: PropertyKey[]) => {
+    const relativePath = section === 'general'
+        ? path
+        : path[0] === 'participantInclusion'
+            || path[0] === 'participantData'
+            || path[0] === 'exclusionConditions'
+            || path[0] === 'customization'
+            ? path.slice(1)
+            : path;
+
+    if (relativePath.length === 0) {
+        return section;
+    }
+
+    return relativePath.reduce<string>((result, segment) => {
+        if (typeof segment === 'number') {
+            return `${result}[${segment + 1}]`;
+        }
+
+        if (typeof segment !== 'string') {
+            return result;
+        }
+
+        return result.length === 0 ? segment : `${result}.${segment}`;
+    }, '');
+};
+
+const createEmptySectionIssues = (): Record<SectionName, SectionIssue[]> => ({
+    general: [],
+    inclusion: [],
+    exclusion: [],
+    data: [],
+    customization: [],
+});
 
 const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
-    const [currentStep, setCurrentStep] = useState(0)
-    const [finishedSteps, setFinishedSteps] = useState<Array<string>>([])
-
     const router = useRouter();
     const [isPending, startTransition] = React.useTransition();
 
-    const [recruitmentList, setRecruitmentList] = useState<RecruitmentList>(props.recruitmentList || {
-        id: undefined,
-        name: "",
-        description: "",
-        participantInclusion: {
-            studyKey: "",
-            type: "manual",
-            autoConfig: undefined,
-        },
-        participantData: {
-            participantInfos: [],
-            researchData: [],
-        },
-        customization: {
-            recruitmentStatusValues: [],
-        },
-    })
+    const baseRecruitmentList = React.useMemo(
+        () => props.recruitmentList || createDefaultRecruitmentList(),
+        [props.recruitmentList]
+    );
+
+    const initialFormValues = React.useMemo(
+        () => normalizeRecruitmentListForForm(baseRecruitmentList, props.initialTags ?? baseRecruitmentList.tags),
+        [baseRecruitmentList, props.initialTags]
+    );
+
+    const form = useForm<RecruitmentList>({
+        resolver: zodResolver(recruitmentListSchema),
+        mode: 'onChange',
+        defaultValues: initialFormValues,
+    });
+
+    const watchedValues = useWatch({ control: form.control }) as RecruitmentList | undefined;
+    const recruitmentList = React.useMemo(
+        () => normalizeRecruitmentListForForm(watchedValues ?? initialFormValues),
+        [initialFormValues, watchedValues]
+    );
+
+    const [formSeed, setFormSeed] = React.useState(0);
+    const [openSections, setOpenSections] = React.useState<SectionName[]>(['general']);
+    const [savedRecruitmentList, setSavedRecruitmentList] = React.useState<RecruitmentList>(initialFormValues);
+    const [savedTags, setSavedTags] = React.useState<string[]>(() => normalizeTags(initialFormValues.tags));
+
+    const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
+    const [selectedImportFileName, setSelectedImportFileName] = React.useState<string>();
+    const [importValidationError, setImportValidationError] = React.useState<string>();
+    const [importedPackage, setImportedPackage] = React.useState<RuiConfigPackage>();
 
     const isNew = recruitmentList.id === undefined;
+    const draftTags = normalizeTags(recruitmentList.tags);
 
+    const availableTagOptions = React.useMemo(
+        () => normalizeTags([...(props.availableTags || []), ...savedTags, ...draftTags]),
+        [props.availableTags, savedTags, draftTags]
+    );
 
+    const hasUnconfiguredStudyKey = recruitmentList.participantInclusion.studyKey.trim() === UNCONFIGURED_STUDY_KEY;
 
-    function onSubmit(values: z.infer<typeof recruitmentListSchema>) {
-        startTransition(async () => {
-            // Perform the form submission logic here.
-            if (isNew) {
-                const resp = await createRecruitmentList(values);
-                if (resp.error !== undefined) {
-                    console.error(resp.error);
-                    toast.error('Could not create recruitment list', {
-                        description: resp.error,
-                    });
+    const hasUnsavedChanges = React.useMemo(() => (
+        !areRecruitmentListsEqual(savedRecruitmentList, recruitmentList)
+        || !areTagsEqual(savedTags, draftTags)
+    ), [savedRecruitmentList, recruitmentList, savedTags, draftTags]);
+
+    const sectionIssues = React.useMemo(() => {
+        const issues = createEmptySectionIssues();
+        const parsedValues = recruitmentListSchema.safeParse({
+            ...recruitmentList,
+            tags: draftTags,
+        });
+
+        if (!parsedValues.success) {
+            parsedValues.error.issues.forEach((issue) => {
+                const section = getSectionForIssuePath(issue.path);
+                if (section === undefined) {
                     return;
                 }
-                router.push(`/home/${resp.id}`);
-            } else {
-                if (recruitmentList.id === undefined) {
-                    return;
-                }
-                const resp = await updateRecruitmentList(recruitmentList.id, values);
-                if (resp.error !== undefined) {
-                    console.error(resp.error);
-                    toast.error('Could not update recruitment list', {
-                        description: resp.error,
-                    });
-                    return;
-                }
-                setCurrentStep(0);
-                toast.success('Recruitment list updated');
+
+                issues[section].push({
+                    path: formatIssuePathForSection(section, issue.path),
+                    message: issue.message,
+                });
+            });
+        }
+
+        return issues;
+    }, [recruitmentList, draftTags]);
+
+    const sectionIssueCounts = React.useMemo(() => ({
+        general: sectionIssues.general.length,
+        inclusion: sectionIssues.inclusion.length,
+        exclusion: sectionIssues.exclusion.length,
+        data: sectionIssues.data.length,
+        customization: sectionIssues.customization.length,
+    }), [sectionIssues]);
+
+    const stepProgress: SectionProgress[] = [
+        {
+            section: 'general',
+            label: 'Basic information',
+            helperText: 'Name, description, and tags',
+            isRequired: true,
+            isComplete: recruitmentListInfoSchema.safeParse({
+                name: recruitmentList.name,
+                description: recruitmentList.description,
+            }).success && sectionIssueCounts.general === 0,
+            icon: FileText,
+            iconClassName: 'text-muted-foreground',
+        },
+        {
+            section: 'inclusion',
+            label: 'Participant inclusion',
+            helperText: 'Study key, inclusion type, and criteria',
+            isRequired: true,
+            isComplete: participantInclusionSchema.safeParse(recruitmentList.participantInclusion).success
+                && !hasUnconfiguredStudyKey
+                && sectionIssueCounts.inclusion === 0,
+            icon: Filter,
+            iconClassName: 'text-muted-foreground',
+        },
+        {
+            section: 'exclusion',
+            label: 'Exclusion conditions',
+            helperText: 'Rules to exclude participants',
+            isRequired: false,
+            isComplete: (recruitmentList.exclusionConditions?.length || 0) > 0 && sectionIssueCounts.exclusion === 0,
+            icon: X,
+            iconClassName: 'text-muted-foreground',
+        },
+        {
+            section: 'data',
+            label: 'Participant data',
+            helperText: 'Participant info and research data sources',
+            isRequired: true,
+            isComplete: recruitmentList.participantData.participantInfos.length > 0
+                && recruitmentList.participantData.researchData.length > 0
+                && sectionIssueCounts.data === 0,
+            icon: Database,
+            iconClassName: 'text-muted-foreground',
+        },
+        {
+            section: 'customization',
+            label: 'List customization',
+            helperText: 'Custom recruitment status values',
+            isRequired: false,
+            isComplete: (recruitmentList.customization.recruitmentStatusValues?.length || 0) > 0
+                && sectionIssueCounts.customization === 0,
+            icon: SlidersHorizontal,
+            iconClassName: 'text-muted-foreground',
+        },
+    ];
+
+    const remainingRequiredCount = stepProgress.filter((item) => item.isRequired && !item.isComplete).length;
+
+    const resetImportState = React.useCallback(() => {
+        setSelectedImportFileName(undefined);
+        setImportValidationError(undefined);
+        setImportedPackage(undefined);
+    }, []);
+
+    const ensureSectionOpen = React.useCallback((section: SectionName) => {
+        setOpenSections((previousValue) => (
+            previousValue.includes(section) ? previousValue : [...previousValue, section]
+        ));
+    }, []);
+
+    const parseImportFile = async (file: FileWithPath) => {
+        setSelectedImportFileName(file.name);
+        setImportValidationError(undefined);
+        setImportedPackage(undefined);
+
+        if (!file.name.endsWith(RUI_CONFIG_EXTENSION)) {
+            setImportValidationError(`File must use the ${RUI_CONFIG_EXTENSION} extension.`);
+            return;
+        }
+
+        let parsedJson: unknown;
+        try {
+            parsedJson = JSON.parse(await file.text());
+        } catch {
+            setImportValidationError('Could not parse file. Please provide valid JSON.');
+            return;
+        }
+
+        const parsedResult = parseRuiConfigPackage(parsedJson);
+        if (parsedResult.error !== undefined) {
+            setImportValidationError(parsedResult.error);
+            return;
+        }
+
+        setImportedPackage(parsedResult.data);
+    };
+
+    const onImportFileChange = (files: readonly FileWithPath[]) => {
+        if (files.length === 0) {
+            resetImportState();
+            return;
+        }
+
+        void parseImportFile(files[0]);
+    };
+
+    const applyImportedPackage = () => {
+        if (importedPackage === undefined) {
+            return;
+        }
+
+        const currentId = form.getValues('id');
+        const importedValues = normalizeRecruitmentListForForm({
+            ...importedPackage.config,
+            id: currentId,
+        } as RecruitmentList);
+
+        form.reset(importedValues);
+        ensureSectionOpen('general');
+        setFormSeed((previousValue) => previousValue + 1);
+        setIsImportDialogOpen(false);
+        resetImportState();
+        toast.success('Configuration imported. Review and save.');
+    };
+
+    const handleExport = () => {
+        const configPackage = createRuiConfigPackage(
+            {
+                ...recruitmentList,
+                tags: draftTags,
+            },
+            {
+                recruitmentListId: recruitmentList.id,
+                recruitmentListName: recruitmentList.name,
+                host: window.location.host,
             }
-        })
-    }
+        );
+
+        const fileContent = JSON.stringify(configPackage, null, 2);
+        const blob = new Blob([fileContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sanitizeFileName(recruitmentList.name)}${RUI_CONFIG_EXTENSION}`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const persistRecruitmentList = () => {
+        const values = normalizeRecruitmentListForForm(form.getValues());
+        const parsedValues = recruitmentListSchema.safeParse({
+            ...values,
+            tags: normalizeTags(values.tags),
+        });
+
+        if (!parsedValues.success) {
+            const sectionsWithIssues = (Object.keys(sectionIssues) as SectionName[])
+                .filter((section) => sectionIssues[section].length > 0);
+
+            if (sectionsWithIssues.length > 0) {
+                setOpenSections((previousValue) => {
+                    const nextValue = [...previousValue];
+                    sectionsWithIssues.forEach((section) => {
+                        if (!nextValue.includes(section)) {
+                            nextValue.push(section);
+                        }
+                    });
+                    return nextValue;
+                });
+            }
+
+            const firstSectionWithIssues = sectionsWithIssues[0];
+            const firstIssue = firstSectionWithIssues
+                ? sectionIssues[firstSectionWithIssues][0]
+                : undefined;
+
+            toast.error('Please resolve validation issues before saving', {
+                description: firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : undefined,
+            });
+            return;
+        }
+
+        const normalizedDraftTags = normalizeTags(parsedValues.data.tags);
+
+        startTransition(async () => {
+            if (isNew) {
+                const createResponse = await createRecruitmentList(parsedValues.data);
+                if (createResponse.error !== undefined) {
+                    toast.error('Could not create recruitment list', {
+                        description: createResponse.error,
+                    });
+                    return;
+                }
+
+                const createdListId = createResponse.id as string | undefined;
+                if (createdListId !== undefined) {
+                    const tagResponse = await updateRecruitmentListTags(createdListId, normalizedDraftTags);
+                    if (tagResponse.error !== undefined) {
+                        toast.error('List was created, but tags could not be saved', {
+                            description: tagResponse.error,
+                        });
+                        router.push(`/home/${createdListId}/settings/configs`);
+                        return;
+                    }
+                }
+
+                setSavedTags(normalizedDraftTags);
+                toast.success('Recruitment list created');
+                if (createdListId !== undefined) {
+                    router.push(`/home/${createdListId}/settings/configs`);
+                    return;
+                }
+                router.push('/home');
+                return;
+            }
+
+            if (recruitmentList.id === undefined) {
+                return;
+            }
+
+            const updateResponse = await updateRecruitmentList(recruitmentList.id, {
+                ...parsedValues.data,
+                id: recruitmentList.id,
+            });
+
+            if (updateResponse.error !== undefined) {
+                toast.error('Could not update recruitment list', {
+                    description: updateResponse.error,
+                });
+                return;
+            }
+
+            if (!areTagsEqual(savedTags, normalizedDraftTags)) {
+                const tagResponse = await updateRecruitmentListTags(recruitmentList.id, normalizedDraftTags);
+                if (tagResponse.error !== undefined) {
+                    toast.error('Configuration saved, but tags could not be updated', {
+                        description: tagResponse.error,
+                    });
+                    return;
+                }
+            }
+
+            const persistedValues = normalizeRecruitmentListForForm({
+                ...parsedValues.data,
+                id: recruitmentList.id,
+            });
+
+            setSavedRecruitmentList(persistedValues);
+            setSavedTags(normalizedDraftTags);
+            toast.success('Recruitment list updated');
+            router.refresh();
+        });
+    };
+
+    const renderSectionContent = (section: SectionName) => {
+        if (section === 'general') {
+            return (
+                <div className='space-y-6'>
+                    <General key={`general-${formSeed}`} />
+
+                    <div className='space-y-2'>
+                        <Label>Tags</Label>
+                        <Controller
+                            control={form.control}
+                            name='tags'
+                            render={({ field }) => (
+                                <TagEditorCompact
+                                    key={`tags-${formSeed}`}
+                                    availableTags={availableTagOptions}
+                                    value={normalizeTags(field.value)}
+                                    onChange={field.onChange}
+                                />
+                            )}
+                        />
+                        <p className='text-sm text-muted-foreground'>
+                            Tags help categorize this list on the overview page.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        if (section === 'inclusion') {
+            return <Inclusion key={`inclusion-${formSeed}`} />;
+        }
+
+        if (section === 'exclusion') {
+            return <ExclusionEditor key={`exclusion-${formSeed}`} />;
+        }
+
+        if (section === 'data') {
+            return <DataSources key={`data-${formSeed}`} />;
+        }
+
+        return <Customisations key={`customization-${formSeed}`} />;
+    };
 
     return (
-        <Tabs value={steps[currentStep]} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-                {steps.map((step, index) => (
-                    <TabsTrigger
-                        key={step}
-                        value={step}
-                        disabled={!finishedSteps.includes(step) && index > currentStep}
-                        className={cn(index < currentStep && "text-primary")}
-                    >
-                        {step.charAt(0).toUpperCase() + step.slice(1)}
-                    </TabsTrigger>
-                ))}
-            </TabsList>
-            <TabsContent value="general" className='pt-4'>
-                <General
-                    defaultValues={{
-                        name: recruitmentList.name,
-                        description: recruitmentList.description,
-                    }}
-                    onSubmit={(general) => {
-                        setRecruitmentList({
-                            ...recruitmentList,
-                            name: general.name,
-                            description: general.description,
-                        })
-                        setCurrentStep(1);
-                        setFinishedSteps(prev => {
-                            if (prev.includes('general')) {
-                                return prev;
-                            }
-                            return [...prev, 'general'];
-                        });
-                    }}
-                />
-            </TabsContent>
+        <FormProvider {...form}>
+            <div className='space-y-5 pb-32 relative block w-full'>
+                <div className='rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80'>
+                    <div>
+                        <p className='text-sm font-medium'>
+                            {remainingRequiredCount === 0
+                                ? 'All required sections are configured.'
+                                : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's' : ''} still need attention.`}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                            Import, export, and save actions are available in the floating bar at the bottom.
+                        </p>
+                    </div>
+                </div>
 
-            <TabsContent value="inclusion" className='pt-4'>
-                <Inclusion
-                    defaultValues={recruitmentList.participantInclusion}
-                    onSubmit={(inclusion) => {
-                        setRecruitmentList({
-                            ...recruitmentList,
-                            participantInclusion: inclusion,
-                        })
-                        setCurrentStep(2);
-                        setFinishedSteps(prev => {
-                            if (prev.includes('inclusion')) {
-                                return prev;
-                            }
-                            return [...prev, 'inclusion'];
-                        });
-                    }}
-                    onPrevious={() => {
-                        setCurrentStep(0);
-                    }}
-                />
-            </TabsContent>
+                <div className='space-y-3'>
+                    {stepProgress.map((section) => {
+                        const isOpen = openSections.includes(section.section);
+                        const SectionIcon = section.icon;
+                        const issues = sectionIssues[section.section];
+                        const hasIssues = issues.length > 0;
 
-            <TabsContent value="data" className='pt-4'>
-                <DataSources
-                    defaultValues={recruitmentList.participantData}
-                    onSubmit={(data) => {
-                        setRecruitmentList({
-                            ...recruitmentList,
-                            participantData: data,
-                        })
-                        setCurrentStep(3);
-                        setFinishedSteps(prev => {
-                            if (prev.includes('data')) {
-                                return prev;
-                            }
-                            return [...prev, 'data'];
-                        });
-                    }}
-                    onPrevious={() => {
-                        setCurrentStep(1);
-                    }}
-                />
-            </TabsContent>
+                        return (
+                            <Collapsible
+                                key={section.section}
+                                open={isOpen}
+                                onOpenChange={(nextValue) => {
+                                    setOpenSections((previousValue) => (
+                                        nextValue
+                                            ? (previousValue.includes(section.section)
+                                                ? previousValue
+                                                : [...previousValue, section.section])
+                                            : previousValue.filter((value) => value !== section.section)
+                                    ));
+                                }}
+                            >
+                                <div className={cn('overflow-hidden rounded-lg border bg-white', isOpen && 'ring-1 ring-border/80')}>
+                                    <CollapsibleTrigger asChild>
+                                        <button
+                                            type='button'
+                                            className='flex w-full items-center gap-3 px-4 py-3 text-left bg-muted/50 hover:bg-accent/30'
+                                        >
+                                            <SectionIcon className={cn('size-5 shrink-0', section.iconClassName)} />
+                                            <div className='min-w-0'>
+                                                <p className='font-medium'>{section.label}</p>
+                                                <p className={cn('text-sm', hasIssues ? 'text-destructive' : 'text-muted-foreground')}>
+                                                    {hasIssues
+                                                        ? `${issues.length} validation issue${issues.length > 1 ? 's' : ''} in this section`
+                                                        : section.helperText}
+                                                </p>
+                                            </div>
+                                            <div className='ml-auto flex items-center gap-3'>
+                                                {hasIssues ? (
+                                                    <div className='flex items-center gap-1 text-destructive'>
+                                                        <CircleAlert className='size-4' />
+                                                        <span className='text-xs font-medium'>{issues.length}</span>
+                                                    </div>
+                                                ) : section.isComplete ? (
+                                                    <CircleCheck className='size-4 text-emerald-600' />
+                                                ) : section.isRequired ? (
+                                                    <CircleDotDashed className='size-4 text-amber-600' />
+                                                ) : null}
+                                                <ChevronDown className={cn('size-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
+                                            </div>
+                                        </button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <div className='border-t px-4 pb-4 pt-5 bg-white'>
+                                            {renderSectionContent(section.section)}
+                                            {hasIssues && (
+                                                <div className='mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3'>
+                                                    <p className='text-sm font-medium text-destructive'>Fix these fields before saving</p>
+                                                    <ul className='mt-2 space-y-1 text-sm text-destructive'>
+                                                        {issues.map((issue, index) => (
+                                                            <li key={`${issue.path}-${issue.message}-${index}`}>
+                                                                <span className='font-mono text-xs'>{issue.path}</span>: {issue.message}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CollapsibleContent>
+                                </div>
+                            </Collapsible>
+                        );
+                    })}
+                </div>
 
-            <TabsContent value="exclusion" className='pt-4'>
-                <ExclusionEditor
-                    defaultValues={recruitmentList.exclusionConditions}
-                    onSubmit={(exclusionConditions) => {
-                        const newRecruitmentList = {
-                            ...recruitmentList,
-                            exclusionConditions: exclusionConditions,
+                <Dialog
+                    open={isImportDialogOpen}
+                    onOpenChange={(open) => {
+                        setIsImportDialogOpen(open);
+                        if (!open) {
+                            resetImportState();
                         }
-                        setRecruitmentList(newRecruitmentList);
-                        setCurrentStep(4);
-                        setFinishedSteps(prev => {
-                            if (prev.includes('exclusion')) {
-                                return prev;
-                            }
-                            return [...prev, 'exclusion'];
-                        });
                     }}
-                    onPrevious={() => {
-                        setCurrentStep(2);
-                    }}
-                />
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Import configuration package</DialogTitle>
+                            <DialogDescription>
+                                Upload a {RUI_CONFIG_EXTENSION} file to prefill this list. Changes are local until you save.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className='space-y-4'>
+                            <FilepickerDropzone
+                                id='setup-config-file'
+                                accept={{
+                                    'application/json': [RUI_CONFIG_EXTENSION, '.json'],
+                                    'text/plain': [RUI_CONFIG_EXTENSION],
+                                }}
+                                labels={{
+                                    upload: `Select a ${RUI_CONFIG_EXTENSION} file`,
+                                    drag: 'or drag and drop it here',
+                                }}
+                                onChange={onImportFileChange}
+                            />
+                            {selectedImportFileName && (
+                                <p className='text-sm text-muted-foreground'>
+                                    Selected file: {selectedImportFileName}
+                                </p>
+                            )}
+                            {importValidationError && (
+                                <div className='rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+                                    {importValidationError}
+                                </div>
+                            )}
+                            {importedPackage && (
+                                <div className='rounded-md border p-3 text-sm text-muted-foreground'>
+                                    Valid package found for config <span className='font-medium text-foreground'>{importedPackage.config.name}</span>.
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant='outline' onClick={() => setIsImportDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={applyImportedPackage}
+                                disabled={importedPackage === undefined}
+                            >
+                                <Upload className='mr-2 size-4' />
+                                Use imported config
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
-
-            </TabsContent>
-
-            <TabsContent value="customization" className='pt-4'>
-                <Customisations
-                    isLoading={isPending}
-                    defaultValues={recruitmentList.customization}
-                    onSubmit={(customization) => {
-                        const newRecruitmentList = {
-                            ...recruitmentList,
-                            customization: customization,
-                        }
-                        setRecruitmentList({
-                            ...newRecruitmentList,
-                        })
-                        onSubmit(newRecruitmentList);
-                    }}
-                    onPrevious={(customization) => {
-                        if (customization !== undefined) {
-                            setRecruitmentList({
-                                ...recruitmentList,
-                                customization: customization,
-                            })
-                        }
-                        setCurrentStep(3);
-                    }}
-                />
-            </TabsContent>
-        </Tabs>
+                <div className='pointer-events-none sticky bottom-4 z-30 mt-4 w-full px-4'>
+                    <div className='bg-primary/5 pointer-events-auto mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 p-3 shadow-lg backdrop-blur'>
+                        <p className='text-sm'>
+                            {!hasUnsavedChanges
+                                ? 'No unsaved changes.'
+                                : remainingRequiredCount === 0
+                                    ? 'Ready to save.'
+                                    : `${remainingRequiredCount} required section${remainingRequiredCount > 1 ? 's are' : ' is'} still incomplete.`}
+                        </p>
+                        <div className='flex flex-wrap items-center gap-2'>
+                            <Button variant='outline' onClick={handleExport}>
+                                <Download className='mr-2 size-4' />
+                                Export
+                            </Button>
+                            <Button variant='outline' onClick={() => setIsImportDialogOpen(true)}>
+                                <Upload className='mr-2 size-4' />
+                                Import
+                            </Button>
+                            <Button
+                                onClick={persistRecruitmentList}
+                                disabled={isPending || !hasUnsavedChanges}
+                                size='lg'
+                            >
+                                {isPending ? <Loader2 className='mr-2 size-4 animate-spin' /> : <Save className='mr-2 size-4' />}
+                                Save changes
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </FormProvider>
     );
 };
 

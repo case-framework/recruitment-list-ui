@@ -11,10 +11,11 @@ export default async function Layout({
     params,
 }: {
     children: React.ReactNode;
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }) {
+    const { id } = await params;
     const session = await auth();
     if (!session || !session.user) {
         redirect('/auth/login');
@@ -28,8 +29,8 @@ export default async function Layout({
         }
 
         const currentPermissions = permissions.permissions || [];
-        const hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id && permission.action === 'manage_recruitment_list');
-        hasDeleteAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id && permission.action === 'delete_recruitment_list');
+        const hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id && permission.action === 'manage_recruitment_list');
+        hasDeleteAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id && permission.action === 'delete_recruitment_list');
         if (!hasManagementAccess && !hasDeleteAccess) {
             redirect('/home');
         }
@@ -37,17 +38,16 @@ export default async function Layout({
 
 
     return (
-        <div className="h-full flex flex-col">
-
-            <div className="flex grow">
+        <div className="h-full min-h-0 overflow-hidden">
+            <div className="flex h-full min-h-0 min-w-0">
                 <SettingsNav
                     hasDeleteAccess={session.isAdmin || hasDeleteAccess}
                 />
-                <div
-                    className="py-5 px-8 w-full"
-                >
-                    {children}
-                </div>
+                <main className="min-w-0 flex-1 overflow-y-auto px-8 py-5">
+                    <div className="mx-auto w-full max-w-[1200px] min-w-0">
+                        {children}
+                    </div>
+                </main>
             </div>
         </div>
     );

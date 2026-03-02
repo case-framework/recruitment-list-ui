@@ -1,6 +1,6 @@
 'use client'
 
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { ShieldCheck } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useTransition } from 'react';

@@ -4,12 +4,12 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle } from "lucide-react"
+import { Label } from "@/components/ui/label"
 
 import React from 'react';
-import { Label } from "@radix-ui/react-label"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { useRouter } from "next/navigation"
-import LoadingButton from "@/components/loading-button"
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { deleteRecruitmentList } from "@/lib/backend/recruitmentLists"
 import { toast } from "sonner"
 

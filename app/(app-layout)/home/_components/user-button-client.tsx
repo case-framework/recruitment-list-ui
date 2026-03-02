@@ -6,7 +6,7 @@ import { LogOut, UserRound } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { User } from 'next-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import LoadingButton from '@/components/loading-button';
+import { LoadingButton } from '@/components/c-ui/loading-button';
 import { logout } from '@/actions/auth/logout';
 import { Separator } from '@/components/ui/separator';
 import { usePathname } from 'next/navigation';

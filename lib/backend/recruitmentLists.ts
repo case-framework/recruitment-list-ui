@@ -167,8 +167,6 @@ export const getSyncInfos = async (recruitmentListId: string) => {
         return { status: response.status, error: response.body.error };
     }
 
-    revalidatePath('/home');
-
     return response.body;
 }
 
@@ -261,5 +259,53 @@ export const resetDataSyncTimeNull = async (recruitmentListId: string) => {
     }
 
     revalidatePath('/home');
+    return response.body;
+}
+
+export const getAvailableRecruitmentListTags = async () => {
+    const session = await auth();
+    if (!session || !session.CASEaccessToken) {
+        return { status: 401, error: 'Unauthorized', tags: [] as string[] };
+    }
+
+    const url = '/v1/recruitment-lists/tags';
+    const response = await fetchRecruitmentListAPI(
+        url,
+        session.CASEaccessToken,
+        {
+            method: 'GET',
+            revalidate: 0,
+        }
+    );
+    if (response.status !== 200) {
+        return { status: response.status, error: response.body.error, tags: [] as string[] };
+    }
+
+    return response.body;
+}
+
+export const updateRecruitmentListTags = async (recruitmentListId: string, tags: string[]) => {
+    const session = await auth();
+    if (!session || !session.CASEaccessToken) {
+        return { status: 401, error: 'Unauthorized' };
+    }
+
+    const url = `/v1/recruitment-lists/${recruitmentListId}/tags`;
+    const response = await fetchRecruitmentListAPI(
+        url,
+        session.CASEaccessToken,
+        {
+            method: 'PUT',
+            body: JSON.stringify({ tags }),
+            revalidate: 0
+        }
+    );
+    if (response.status !== 200) {
+        return { status: response.status, error: response.body.error };
+    }
+
+    revalidatePath('/home');
+    revalidatePath(`/home/${recruitmentListId}/settings/configs`);
+
     return response.body;
 }

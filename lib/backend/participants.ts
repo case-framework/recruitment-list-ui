@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { fetchRecruitmentListAPI } from "./fetch-case-management-api";
 import { revalidatePath } from "next/cache";
+import { replaceParticipantInfoFiltersInQuery } from "../participants/filter-utils";
 
 export const importParticipant = async (recruitmentListId: string, participantId: string) => {
     const session = await auth();
@@ -34,6 +35,7 @@ export interface ParticipantFilters {
     recruitmentStatus: string | null
     includedSince: string | null
     includedUntil: string | null
+    infos: Record<string, string>
 }
 
 export const getParticipants = async (recruitmentListId: string, page: number, participantFilters?: ParticipantFilters, sortBy?: string, sortDir?: string) => {
@@ -57,6 +59,7 @@ export const getParticipants = async (recruitmentListId: string, page: number, p
         if (participantFilters.includedUntil !== null) {
             query.set('includedUntil', participantFilters.includedUntil);
         }
+        replaceParticipantInfoFiltersInQuery(query, participantFilters.infos || {});
     }
 
     if (sortBy !== undefined) {

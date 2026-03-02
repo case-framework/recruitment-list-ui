@@ -16,10 +16,11 @@ export default async function Layout({
     params,
 }: {
     children: React.ReactNode;
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }) {
+    const { id } = await params;
     const session = await auth();
     if (!session || !session.user) {
         redirect('/auth/login');
@@ -33,8 +34,8 @@ export default async function Layout({
         }
 
         const currentPermissions = permissions.permissions || [];
-        const hasAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id);
-        hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === params.id && permission.action === 'manage_recruitment_list' || permission.action === 'delete_recruitment_list');
+        const hasAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id);
+        hasManagementAccess = currentPermissions.some((permission: Permission) => permission.resourceId === id && permission.action === 'manage_recruitment_list' || permission.action === 'delete_recruitment_list');
 
         if (!hasAccess) {
             redirect('/home');
@@ -43,26 +44,26 @@ export default async function Layout({
 
     const showSettings = hasManagementAccess || session.isAdmin;
 
-    const rlResp = await getRecruitmentList(params.id);
+    const rlResp = await getRecruitmentList(id);
     if (rlResp.error !== undefined) {
         redirect('/home');
     }
 
     return (
         <div className="h-full">
-            <div className="h-[57px] fixed top-0 left-[57px] z-20 right-0 border-b border-border bg-background px-8 flex items-center justify-between ">
+            <div className="h-[53px] fixed top-0 left-[53px] z-20 right-0 border-b border-border bg-background px-8 flex items-center justify-between ">
                 <h1 className="text-xl font-bold font-mono text-primary">{rlResp?.name}</h1>
                 {showSettings && <Button
                     size={'icon'}
                     variant={'ghost'}
                     asChild
                 >
-                    <Link href={`/home/${params.id}/settings`}>
+                    <Link href={`/home/${id}/settings`}>
                         <SettingsIcon className="size-5" />
                     </Link>
                 </Button>}
             </div>
-            <div className="pt-[57px] h-full">
+            <div className="pt-[53px] h-full">
                 {children}
             </div>
         </div>

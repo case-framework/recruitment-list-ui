@@ -15,13 +15,13 @@ const PconderzoekLogoCard: React.FC<PconderzoekLogoCardProps> = (props) => {
                 <div className="">
 
                     <Link href="/">
-                        <h1 className="text-2xl font-semibold tracking-wider flex flex-col sm:flex-row gap-6 items-end">
-                            <span className="text-primary grow">
+                        <h1 className="text-2xl font-semibold tracking-wider flex flex-col sm:flex-row gap-4 items-center justify-center sm:items-end">
+                            <span className="text-primary grow order-2 sm:order-1 text-start w-full">
                                 Recruitment List App
                             </span>
 
 
-                            <div className='min-w-[170px] w-[170px] py-4'>
+                            <span className='min-w-[170px] w-[170px] py-4 order-1 sm:order-2'>
                                 <AspectRatio
                                     ratio={463 / 147}
                                 >
@@ -33,7 +33,7 @@ const PconderzoekLogoCard: React.FC<PconderzoekLogoCardProps> = (props) => {
                                         priority
                                     />
                                 </AspectRatio>
-                            </div>
+                            </span>
                         </h1>
                         <p className="text-muted-foreground mt-1">Study tools for data access and contact management. </p>
                     </Link>
