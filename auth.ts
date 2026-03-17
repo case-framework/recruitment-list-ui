@@ -16,6 +16,16 @@ export const ADMIN_ROUTES = [
     { path: '/home/user-management', exact: false },
 ]
 
+const recoveryModeAdminEmail = process.env.RECOVERY_MODE_EMAIL?.trim().toLowerCase()
+
+const getLoginRoles = (email?: string | null): string[] => {
+    if (!recoveryModeAdminEmail || !email) {
+        return []
+    }
+
+    return email.trim().toLowerCase() === recoveryModeAdminEmail ? ["ADMIN"] : []
+}
+
 
 const MsEntraIDProvider = MSEntraIDProvider({
     id: "oidc-provider",
@@ -96,7 +106,7 @@ export const {
                             name: user.name || undefined,
                             email: user.email || undefined,
                             imageURL: user.image || undefined,
-                            roles: [], // we don't accept admin claim from idp now
+                            roles: getLoginRoles(user.email), // recovery mode can temporarily promote a single configured email
                             renewToken: process.env.DISABLE_TOKEN_REFRESH === 'true' ? undefined : account.refresh_token
                         })
                         token.CASESessionID = response.sessionID
