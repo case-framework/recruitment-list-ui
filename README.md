@@ -20,6 +20,26 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Recovery Mode Admin Login
+
+The login flow supports a recovery-mode override for emergency access.
+
+Set the `RECOVERY_MODE_EMAIL` environment variable to a single email address. When this variable is defined and a user logs in with the same email address, the application includes the `ADMIN` role in the roles array sent during login.
+
+Behavior:
+
+- If `RECOVERY_MODE_EMAIL` is unset, recovery mode is disabled and no extra role is granted.
+- If `RECOVERY_MODE_EMAIL` is set, only the matching user gets the `ADMIN` role during sign-in.
+- Email matching is case-insensitive and ignores surrounding whitespace.
+
+Example:
+
+```env
+RECOVERY_MODE_EMAIL=admin@example.com
+```
+
+This flag should remain unset during normal operation and only be enabled temporarily for account recovery or emergency administrative access.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
