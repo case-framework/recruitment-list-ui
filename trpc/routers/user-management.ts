@@ -6,6 +6,7 @@ import {
     httpStatusToTrpcErrorCode,
     userManagementErrorMessages,
 } from '../utils';
+import logger from '@/lib/logger';
 
 const researcherUserSchema = z.looseObject({
     id: z.string().min(1),
@@ -39,11 +40,11 @@ const researchersResponseSchema = z.object({
 });
 
 const userPermissionsResponseSchema = z.object({
-    permissions: z.array(permissionSchema).default([]),
+    permissions: z.array(permissionSchema).default([]).nullable(),
 });
 
 const recruitmentListsResponseSchema = z.object({
-    recruitmentLists: z.array(recruitmentListSchema).default([]),
+    recruitmentLists: z.array(recruitmentListSchema).default([]).nullable(),
 });
 
 const getUserDetailsInputSchema = z.object({
@@ -143,6 +144,7 @@ export const userManagementRouter = router({
 
                 const parsedPermissions = userPermissionsResponseSchema.safeParse(permissionsResponse.body);
                 if (!parsedPermissions.success) {
+                    logger.error(parsedPermissions.error.message);
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
                         message: userManagementErrorMessages.getPermissions,
@@ -154,8 +156,7 @@ export const userManagementRouter = router({
         );
 
         const resourceNameById = new Map(
-            parsedRecruitmentLists.data.recruitmentLists
-                .filter((list) => typeof list.id === 'string' && list.id.length > 0)
+            parsedRecruitmentLists.data.recruitmentLists?.filter((list) => typeof list.id === 'string' && list.id.length > 0)
                 .map((list) => [list.id as string, list.name])
         );
 
@@ -216,6 +217,7 @@ export const userManagementRouter = router({
             }
 
             if (permissionsResponse.status !== 200) {
+                logger.error(permissionsResponse.body);
                 throwForFailedRequest(
                     permissionsResponse.status,
                     permissionsResponse.body,
@@ -241,6 +243,7 @@ export const userManagementRouter = router({
 
             const parsedPermissions = userPermissionsResponseSchema.safeParse(permissionsResponse.body);
             if (!parsedPermissions.success) {
+                logger.error(parsedPermissions.error.message);
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
                     message: userManagementErrorMessages.getPermissions,

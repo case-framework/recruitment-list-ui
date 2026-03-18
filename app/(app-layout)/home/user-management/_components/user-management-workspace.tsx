@@ -209,8 +209,7 @@ const UserManagementWorkspace = ({ currentUserSub }: UserManagementWorkspaceProp
         }
 
         const recruitmentListById = new Map(
-            detailsQuery.data.recruitmentLists
-                .filter((list) => Boolean(list.id))
+            detailsQuery.data.recruitmentLists?.filter((list) => Boolean(list.id))
                 .map((list) => [list.id as string, list])
         );
 
@@ -228,7 +227,7 @@ const UserManagementWorkspace = ({ currentUserSub }: UserManagementWorkspaceProp
             }
         >();
 
-        for (const permission of detailsQuery.data.permissions) {
+        for (const permission of detailsQuery.data.permissions ?? []) {
             const resourceId = permission.resourceId ?? '__global__';
             const recruitmentList = permission.resourceId ? recruitmentListById.get(permission.resourceId) : null;
 
@@ -498,7 +497,7 @@ const UserManagementWorkspace = ({ currentUserSub }: UserManagementWorkspaceProp
                                 onClose={() => setIsAddPermissionOpen(false)}
                                 onAdded={() => invalidateUserData(selectedUserId)}
                                 userId={selectedUserId}
-                                recruitmentLists={detailsQuery.data.recruitmentLists}
+                                recruitmentLists={detailsQuery.data.recruitmentLists ?? []}
                             />
                         </>
                     )}
