@@ -9,6 +9,15 @@ const Exclusion = () => {
         control: form.control,
         name: 'exclusionConditions',
     });
+    const participantInfos = useWatch({
+        control: form.control,
+        name: 'participantData.participantInfos',
+    });
+    const participantInfoKeys = Array.from(
+        new Set((participantInfos ?? [])
+            .map((participantInfo) => participantInfo.label?.trim() || participantInfo.sourceKey?.trim())
+            .filter((key): key is string => key.length > 0))
+    );
 
     return (
         <div className='space-y-8'>
@@ -17,10 +26,11 @@ const Exclusion = () => {
                     Exclusion conditions (optional)
                 </p>
                 <p className='text-muted-foreground text-sm mb-4'>
-                    If for any of the following the participant info contains the key and value, the participant will be excluded from the recruitment list. The participant infos and responses of this participant will be deleted form the list.
+                    If for any of the following the participant info contains the key and value, the participant will be excluded from the recruitment list. The participant infos and responses of this participant will be deleted from the list.
                 </p>
                 <MappingEditor
                     mapping={exclusionConditions ?? []}
+                    keyOptions={participantInfoKeys}
                     onChange={(newMapping) => {
                         form.setValue('exclusionConditions', newMapping, {
                             shouldDirty: true,
