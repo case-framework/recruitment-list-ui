@@ -72,7 +72,7 @@ export function ResearchDataSourceRow({ entry, onUpdate, onDelete }: ResearchDat
                             mode="single"
                             selected={entry.startDate}
                             onSelect={(date) => handleInputChange('startDate', date)}
-                            initialFocus
+                            autoFocus
                         />
                     </PopoverContent>
                 </Popover>
@@ -96,7 +96,7 @@ export function ResearchDataSourceRow({ entry, onUpdate, onDelete }: ResearchDat
                             mode="single"
                             selected={entry.endDate}
                             onSelect={(date) => handleInputChange('endDate', date)}
-                            initialFocus
+                            autoFocus
                         />
                     </PopoverContent>
                 </Popover>

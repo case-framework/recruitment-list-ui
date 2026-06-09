@@ -233,7 +233,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                             }
                                             setCurrentFilters({ ...currentFilters, includedSince: date.toISOString() })
                                         }}
-                                        initialFocus
+                                        autoFocus
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -265,7 +265,7 @@ const FilterEditor: React.FC<FilterEditorProps> = (props) => {
                                             setCurrentFilters({ ...currentFilters, includedUntil: date.toISOString() })
                                         }}
 
-                                        initialFocus
+                                        autoFocus
                                     />
                                 </PopoverContent>
                             </Popover>

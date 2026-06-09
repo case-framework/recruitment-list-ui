@@ -4,16 +4,28 @@ import { Button } from "../ui/button";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Separator } from "../ui/separator";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../ui/select";
 
 interface MappingEditorProps {
     mapping: { key: string; value: string }[]
     onChange: (newMapping: { key: string; value: string }[]) => void
+    keyOptions?: string[]
 }
 
-function MappingEditor({ mapping, onChange }: MappingEditorProps) {
+const NO_KEY_SELECTED = '__mapping_editor_no_key_selected__';
+
+function MappingEditor({ mapping, onChange, keyOptions }: MappingEditorProps) {
     const [newKey, setNewKey] = useState('')
     const [newValue, setNewValue] = useState('')
     const refKey = useRef<HTMLInputElement>(null)
+    const hasKeyOptions = keyOptions !== undefined && keyOptions.length > 0;
+    const selectedKey = newKey || NO_KEY_SELECTED;
 
     const addPair = () => {
         if (newKey && newValue) {
@@ -65,20 +77,46 @@ function MappingEditor({ mapping, onChange }: MappingEditorProps) {
             </div>
             <Separator />
             <div className="flex items-center space-x-2">
-                <Input
-                    ref={refKey}
-                    value={newKey}
-                    onChange={(e) => setNewKey(e.target.value)}
-                    placeholder="Key"
-                    className="w-1/3"
-                />
+                {keyOptions === undefined ? (
+                    <Input
+                        ref={refKey}
+                        value={newKey}
+                        onChange={(e) => setNewKey(e.target.value)}
+                        placeholder="Key"
+                        className="w-1/3"
+                    />
+                ) : (
+                    <Select
+                        value={selectedKey}
+                        onValueChange={(value) => {
+                            if (value !== NO_KEY_SELECTED) {
+                                setNewKey(value);
+                            }
+                        }}
+                        disabled={!hasKeyOptions}
+                    >
+                        <SelectTrigger className="w-1/3 min-w-48">
+                            <SelectValue placeholder={hasKeyOptions ? 'Key' : 'No participant data keys'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={NO_KEY_SELECTED} disabled>
+                                {hasKeyOptions ? 'Key' : 'No participant data keys'}
+                            </SelectItem>
+                            {keyOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
                 <Input
                     value={newValue}
                     onChange={(e) => setNewValue(e.target.value)}
                     placeholder="Value"
                     className="w-1/3"
                 />
-                <Button onClick={addPair}>Add</Button>
+                <Button onClick={addPair} disabled={keyOptions !== undefined && !hasKeyOptions}>Add</Button>
             </div>
         </div>
     )

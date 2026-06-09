@@ -331,23 +331,22 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
             iconClassName: 'text-muted-foreground',
         },
         {
+            section: 'data',
+            label: 'Participant data',
+            helperText: 'Participant info sources and optional research data',
+            isRequired: true,
+            isComplete: recruitmentList.participantData.participantInfos.length > 0
+                && sectionIssueCounts.data === 0,
+            icon: Database,
+            iconClassName: 'text-muted-foreground',
+        },
+        {
             section: 'exclusion',
             label: 'Exclusion conditions',
             helperText: 'Rules to exclude participants',
             isRequired: false,
             isComplete: (recruitmentList.exclusionConditions?.length || 0) > 0 && sectionIssueCounts.exclusion === 0,
             icon: X,
-            iconClassName: 'text-muted-foreground',
-        },
-        {
-            section: 'data',
-            label: 'Participant data',
-            helperText: 'Participant info and research data sources',
-            isRequired: true,
-            isComplete: recruitmentList.participantData.participantInfos.length > 0
-                && recruitmentList.participantData.researchData.length > 0
-                && sectionIssueCounts.data === 0,
-            icon: Database,
             iconClassName: 'text-muted-foreground',
         },
         {
