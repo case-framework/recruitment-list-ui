@@ -333,10 +333,9 @@ const RecruitmentListEditor: React.FC<RecruitmentListEditorProps> = (props) => {
         {
             section: 'data',
             label: 'Participant data',
-            helperText: 'Participant info and research data sources',
+            helperText: 'Participant info sources and optional research data',
             isRequired: true,
             isComplete: recruitmentList.participantData.participantInfos.length > 0
-                && recruitmentList.participantData.researchData.length > 0
                 && sectionIssueCounts.data === 0,
             icon: Database,
             iconClassName: 'text-muted-foreground',

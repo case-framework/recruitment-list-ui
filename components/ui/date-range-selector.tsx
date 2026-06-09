@@ -16,6 +16,12 @@ interface DateRangeSelectorProps {
 
 export default function DateRangeSelector(props: DateRangeSelectorProps) {
     const { value } = props
+    const startMonth = props.from ? new Date(props.from.getFullYear(), props.from.getMonth()) : undefined
+    const endMonth = props.to ? new Date(props.to.getFullYear(), props.to.getMonth()) : undefined
+    const hidden = [
+        props.from ? { before: props.from } : undefined,
+        props.to ? { after: props.to } : undefined,
+    ].filter((matcher): matcher is NonNullable<typeof matcher> => matcher !== undefined)
 
     return (
         <Popover>
@@ -40,14 +46,15 @@ export default function DateRangeSelector(props: DateRangeSelectorProps) {
             <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                     disabled={props.disabled}
-                    initialFocus
+                    autoFocus
                     mode="range"
                     defaultMonth={value?.from || props.from}
                     selected={value}
                     onSelect={props.onChange}
                     numberOfMonths={2}
-                    fromDate={props.from}
-                    toDate={props.to}
+                    startMonth={startMonth}
+                    endMonth={endMonth}
+                    hidden={hidden}
                 />
                 <div className="p-3 border-t">
                     <Button variant="outline" className="w-full" onClick={() => props.onChange(undefined)}>
