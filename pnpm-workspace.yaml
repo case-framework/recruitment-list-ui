@@ -2,3 +2,9 @@ allowBuilds:
   msw: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - react
+  - react-dom
+  - next
+  - "@next/*"
+  - eslint-config-next
