@@ -175,8 +175,8 @@ const UserManagementWorkspace = ({ currentUserSub }: UserManagementWorkspaceProp
             cancelButtonText: 'Cancel',
             variant: 'destructive',
             requireConfirmationInput: {
-                confirmTerm: selectedUser.username,
-                hint: 'Type the exact username to confirm this action.',
+                confirmTerm: 'DELETE',
+                hint: 'Type DELETE to confirm this action.',
             },
         });
 
